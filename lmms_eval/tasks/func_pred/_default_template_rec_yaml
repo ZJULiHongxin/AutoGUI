@@ -1,0 +1,17 @@
+dataset_path: HongxinLi/FuncPred
+output_type: generate_until
+doc_to_visual: !function utils_rec.screenspot_rec_doc_to_visual
+doc_to_text: !function utils_rec.screenspot_rec_doc_to_text
+doc_to_target: "bbox"
+dataset_kwargs:
+  force_download: True
+generation_kwargs:
+  until:
+    - "<|start_header_id|>assistant"
+process_results: !function utils_rec.screenspot_rec_process_result
+metric_list:
+  - metric: screenspot_Center_ACC
+    aggregation : !function utils_rec.screenspot_rec_center_acc
+    higher_is_better : true
+metadata:
+  version: '0.0'

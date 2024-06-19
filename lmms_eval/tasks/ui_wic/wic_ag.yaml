@@ -1,0 +1,40 @@
+group: wic
+task: wic_point_test
+test_split: train
+include: _default_template_wic_yaml
+process_docs: !function utils_point.wic_preprocess_dataset
+output_type: generate_until
+doc_to_visual: !function utils_point.wic_doc_to_visual
+doc_to_text: !function utils_point.wic_doc_to_text
+doc_to_target: !function  utils_point.wic_doc_to_target
+metadata:
+  - version: 0.0
+model_specific_prompt_kwargs:
+  default:
+    format: default
+    post_prompt: |
+      {question}.
+  seeclick:
+    format: seeclick
+    pre_prompt: |
+      Please generate the next move according to the ui screenshot, instruction and previous actions. Please provide the answer (with bbox).
+    post_prompt: |
+      Task Instruction: {goal_info}.
+      Step Instruction: {step_instr}.
+      Previous actions: {previous_actions}.
+  cogagent_chat_hf:
+    format: cogagent_chat_hf
+    pre_prompt: |
+      Generate the next action according to the UI screenshot, instruction. Please provide the answer directly (with grounding). 
+    post_prompt: |
+      Task Instruction: {goal_info}.
+      Step Instruction: {step_instr}.
+process_results: !function utils_point.wic_process_results
+model_specific_process_kwargs:
+  default: "default"
+  seeclick: "seeclick"
+  cogagent_chat_hf: "cogagent_chat_hf"
+metric_list: # extract the value according to the metric: "key". Thus, the process_results should output the {key1: , key2: ...}
+  - metric: point_acc # action_point
+    aggregation: !function utils_point.wic_aggregation_result
+    higher_is_better: true

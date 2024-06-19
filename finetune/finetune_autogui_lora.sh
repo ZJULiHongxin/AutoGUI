@@ -1,0 +1,28 @@
+deepspeed --include "localhost:0,1,2,3,4,5,6,7" --master_port 14223 finetune/finetune.py \
+    --model_name_or_path Qwen/Qwen-VL-Chat \
+    --qwen_path Qwen/Qwen-VL-Chat \
+    --data_path path/to/all_data.json \
+    --bf16 True \
+    --fix_vit False \
+    --output_dir ./checkpoints/xxx \
+    --num_train_epochs 1 \
+    --per_device_train_batch_size 4 \
+    --per_device_eval_batch_size 1 \
+    --gradient_accumulation_steps 4 \
+    --evaluation_strategy "no" \
+    --save_strategy "steps" \
+    --save_steps 400 \
+    --save_total_limit 100 \
+    --learning_rate 3e-5 \
+    --weight_decay 0.1 \
+    --adam_beta2 0.95 \
+    --warmup_ratio 0.01 \
+    --lr_scheduler_type "cosine" \
+    --logging_steps 10 \
+    --report_to "wandb" \
+    --run_name "xxx" \
+    --model_max_length 1280 \
+    --lazy_preprocess True \
+    --use_lora \
+    --gradient_checkpointing \
+    --deepspeed finetune/ds_config_zero2.json

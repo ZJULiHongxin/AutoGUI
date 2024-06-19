@@ -1,0 +1,4 @@
+group: func_pred
+task:
+- func_pred_reg_test
+- func_pred_rec_test
