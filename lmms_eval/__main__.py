@@ -266,6 +266,7 @@ def cli_evaluate_single(args: Union[argparse.Namespace, None] = None) -> None:
             )
             # eval_logger.warn(f"Tasks {missing} were not found. Try `lmms-eval --tasks list` for list of available tasks.")
 
+    assert len(task_names) > 0, f"Please choose from the following tasks: {','.join(ALL_TASKS)}"
     eval_logger.info(f"Selected Tasks: {task_names}")
 
     # set datetime before evaluation

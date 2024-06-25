@@ -11,7 +11,7 @@ import logging
 eval_logger = logging.getLogger("lmms-eval")
 
 
-def screenspot_bbox_doc_to_visual(doc):
+def bbox_doc_to_visual(doc):
     bbox = doc["bbox"]
     image = doc["image"].convert("RGB")
     draw = ImageDraw.Draw(image)
@@ -20,7 +20,7 @@ def screenspot_bbox_doc_to_visual(doc):
     return [image.convert("RGB")]
 
 
-def screenspot_process_result(doc, result):
+def process_result(doc, result):
     """
     Args:
         doc: a instance of the eval dataset
@@ -31,14 +31,14 @@ def screenspot_process_result(doc, result):
     pred = result[0] if len(result) > 0 else ""
     ann_id = doc["file_name"]
     data_dict = {"instruction": doc["instruction"], "pred": pred, "ann_id": ann_id, 'data_type': doc['data_type'], 'data_source': doc['data_source']}
-    return {f"screenspot_{metric}": data_dict for metric in COCO_METRICS}
+    return {f"{metric}": data_dict for metric in COCO_METRICS}
 
 
-def screenspot_doc_to_text(doc):
+def doc_to_text(doc):
     return f"Direct a user to interact with the highlighted region [{doc['bbox'][0]:.2f}, {doc['bbox'][1]:.2f}, {doc['bbox'][2]:.2f}, {doc['bbox'][3]:.2f}]."
 
 
-def screenspot_aggregation_result(results, metric):
+def aggregation_result(results, metric):
     # scorers = [(Bleu(4), "Bleu_1"), (Bleu(4), "Bleu_2"), (Bleu(4), "Bleu_3"), (Bleu(4), "Bleu_4"), (Meteor(), "METEOR"), (Rouge(), "ROUGE_L"), (Cider(), "CIDEr"), (Spice(), "SPICE")]
     scorers = [(Cider(), "CIDEr")]
     scorers_dict = {s[1]: s for s in scorers}
@@ -94,33 +94,33 @@ def screenspot_aggregation_result(results, metric):
     return score
 
 
-def screenspot_bleu4(results):
-    return screenspot_aggregation_result(results, "Bleu_4")
+def bleu4(results):
+    return aggregation_result(results, "Bleu_4")
 
 
-def screenspot_bleu3(results):
-    return screenspot_aggregation_result(results, "Bleu_3")
+def bleu3(results):
+    return aggregation_result(results, "Bleu_3")
 
 
-def screenspot_bleu2(results):
-    return screenspot_aggregation_result(results, "Bleu_2")
+def bleu2(results):
+    return aggregation_result(results, "Bleu_2")
 
 
-def screenspot_bleu1(results):
-    return screenspot_aggregation_result(results, "Bleu_1")
+def bleu1(results):
+    return aggregation_result(results, "Bleu_1")
 
 
-def screenspot_meteor(results):
-    return screenspot_aggregation_result(results, "METEOR")
+def meteor(results):
+    return aggregation_result(results, "METEOR")
 
 
-def screenspot_rougel(results):
-    return screenspot_aggregation_result(results, "ROUGE_L")
+def rougel(results):
+    return aggregation_result(results, "ROUGE_L")
 
 
-def screenspot_cider(results):
-    return screenspot_aggregation_result(results, "CIDEr")
+def cider(results):
+    return aggregation_result(results, "CIDEr")
 
 
-def screenspot_spice(results):
-    return screenspot_aggregation_result(results, "SPICE")
+def spice(results):
+    return aggregation_result(results, "SPICE")

@@ -1,10 +1,12 @@
-import re 
+import re , random
 import logging
 from datasets import Dataset
+from pretrain.prompt_lib import web_loca_all_point_prompt
+from pretrain.process_utils import pred_2_point
 
 eval_logger = logging.getLogger("lmms-eval")
 
-REC_METRICS = ["IoU", "ACC@0.1", "ACC@0.3", "ACC@0.5", "ACC@0.7", "ACC@0.9", "Center_ACC"]
+REC_METRICS = ["Center_ACC"]
 
 
 
@@ -14,8 +16,24 @@ def screenspot_rec_doc_to_visual(doc):
     return [image.convert("RGB")]
 
 
-def screenspot_rec_doc_to_text(doc):
-    return f"<image>\nYour next task is: {doc['instruction']}"
+def screenspot_rec_doc_to_text(doc, model_specific_prompt_kwargs=None):
+    instruc = doc["instruction"]
+    pre_prompt = ""
+    post_prompt = ""
+
+    # Use random prompt templates
+    if model_specific_prompt_kwargs['format'] == 'random':
+        prompt = random.choice(web_loca_all_point_prompt) + f" This element is used for \"{instruc}\""
+    else: # Use model-specific prompt tempalte
+        if "pre_prompt" in model_specific_prompt_kwargs:
+            pre_prompt = model_specific_prompt_kwargs["pre_prompt"]
+        if "post_prompt" in model_specific_prompt_kwargs:
+            post_prompt = model_specific_prompt_kwargs["post_prompt"].format(goal_info=instruc)
+        
+        prompt = f"{pre_prompt}{post_prompt}"
+    
+    # if the we require a box-format output, the prompt should be modified accordingly
+    return prompt
 
 # f'What are the bounding box coordinates of the element corresponding to the command "{doc["instruction"]}" in this UI screenshot?(with grounding)'
 # "Bounding box coordinates are specified in the format (top-left x, top-left y, bottom-right x, bottom-right y). All values are floating point numbers bounded between 0 and 1 with two decimal places of precision (e.g., 0.15). Please provide the bounding box coordinates of the region that corresponds to the command: " + doc["instruction"]
@@ -64,76 +82,7 @@ def extract_bbox(pred):
 
     return points
 
-# point (str) -> point
-BRACKET_COORD_PATTERN = re.compile(r'\[(.*?)\]')
-GENERAL_COORD_PATTERN = re.compile(r'-?\d+\.?\d*')
-
-
-def pred_2_point(pred, keep_box=True):
-    click_point = None
-    if '[[' in pred: # For CogAgent
-        coords_start = pred.find('[[')
-        if coords_start != -1:
-            coords_end = pred.find(']]')
-            if coords_end != -1:
-                coords_str = pred[coords_start+2:coords_end]
-                try:
-                    # The bounding box coordinates in the CogAgent's output use the format [[x1, y1, x2, y2]], with the origin at the top left corner, the x-axis to the right, and the y-axis downward. (x1, y1) and (x2, y2) are the top-left and bottom-right corners, respectively, with values as relative coordinates multiplied by 1000 (prefixed with zeros to three digits).
-                    click_point = [x / 1000 for x in map(float, coords_str.split(','))]
-                except:
-                    raise ValueError("Cannot extract click point from {}".format(pred))
-    elif '[' in pred:
-        matches = [(match.group(), (match.start(), match.end())) for match in BRACKET_COORD_PATTERN.finditer(pred)]
-
-        if matches:
-            # We take the last one
-            last_valid_match_id = len(matches) - 1
-            while last_valid_match_id >=0:
-                click_point_str, start_end = matches[last_valid_match_id]
-                try:
-                    click_point = list(map(float, click_point_str[1:-1].split(',')))
-                    break
-                except: pass
-                last_valid_match_id -= 1
-            else:
-                raise ValueError("Cannot extract click point from {}".format(pred))
-
-            # If there are two coordinates enclosed with brackets and they are different and their appearances in the response are not far away, they may be represent the top-left and bottom-right corners, respectively.
-            if len(click_point) == 2 and last_valid_match_id > 0 and (start_end[0] - matches[last_valid_match_id-1][1][1]) < 30:
-                try:
-                    another_point = list(map(float, matches[last_valid_match_id-1][0][1:-1].split(', ')))
-                    if len(another_point) == 2:
-                        click_point = [(another_point[0] + click_point[0]) / 2, (another_point[1] + click_point[1]) / 2]
-                except: pass
-
-    if click_point is None: # For SeeClick
-        if '<box>' in pred: # For QWen-VL-Chat
-            click_point = extract_bbox(pred)
-        else:
-            floats = GENERAL_COORD_PATTERN.findall(pred)
-            
-            if floats:
-                click_point = []
-                for num in floats:
-                    try:
-                        num = float(num)
-                        click_point.append(num)
-                    except: pass
-        
-    assert click_point is not None, "Cannot extract click point from {}".format(pred)
-    assert len(click_point) in [2,4], "Invalid click point {} found in {}".format(click_point, pred)
-    
-    if not keep_box and len(click_point) == 4:
-        click_point = [(click_point[0]+click_point[2])/2, (click_point[1]+click_point[3])/2]
-
-    # In case where the coordinates are normalized in the range [0, 1000)
-    if any(x > 1 for x in click_point):
-        click_point = [x / 1000 for x in click_point]
-
-    return click_point
-
-
-def screenspot_rec_process_result(doc, result):
+def screenspot_rec_process_result(doc, result, model_specific_process_kwargs=None):
     """
     Args:
         doc: a instance of the eval dataset
@@ -141,14 +90,16 @@ def screenspot_rec_process_result(doc, result):
     Returns:
         a dictionary with key: metric name, value: metric value
     """
-    pred = result[0] if len(result) > 0 else ""
-    # pred = parse_float_sequence_within(pred)
+    pred = result[0]['response'] if len(result) > 0 else ""
+
+    scale = model_specific_process_kwargs.get("scale", 1) if model_specific_process_kwargs is not None else 1
+
     try:
-        pred = pred_2_point(pred)
+        pred = pred_2_point(pred, keep_box=False, scale=scale)
     except:
         pred = [0,0,0,0]
     ann_id = doc["file_name"]
-    data_dict = {"instruction": doc["instruction"], "pred": pred, "ann_id": ann_id, 'bbox': doc['bbox'], 'data_type': doc['data_type'], 'data_source': doc['data_source']}
+    data_dict = {"prompt": result[0]["prompt"], "response": result[0]["response"],"instruction": doc["instruction"], "pred": pred, "ann_id": ann_id, 'bbox': doc['bbox'], 'data_type': doc['data_type'], 'data_source': doc['data_source']}
     return {f"screenspot_{metric}": data_dict for metric in REC_METRICS}
 
 

@@ -1,4 +1,4 @@
 group: func_pred_rec
 task: func_pred_rec_test
 include: _default_template_rec_yaml
-test_split: train
+test_split: test

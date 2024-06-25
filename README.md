@@ -30,6 +30,10 @@ cd AutoGUI
 pip install -e .
 ```
 
+### Additional Packages
+Please also follow the installation instructions of [LLaVA](https://github.com/haotian-liu/LLaVA), [vLLM==0.4.0](https://vllm.readthedocs.io) and [SGLang==0.1.14](https://github.com/sgl-project/sglang) to install them for evaluation.
+
+Note that installing these 
 ## AutoGUI Dataset
 
 ### Training Set

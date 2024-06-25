@@ -1,8 +1,7 @@
 import os
 
 AVAILABLE_MODELS = {
-    "ui_llava": "UI_Llava",
-    "ui_llava_lora": "UI_Llava_Lora",
+    "autogui": "AutoGUI",
     "llava": "Llava",
     "llava_hf": "LlavaHf",
     "llava_sglang": "LlavaSglang",
@@ -14,7 +13,6 @@ AVAILABLE_MODELS = {
     "minicpm_v": "MiniCPM_V",
     "cogagent_chat_hf": "CogAgentChatHf",
     "seeclick": "SeeClick",
-    "paligemma": "PALIGemma",
     "internvl_chat": "InternVLChat"
 }
 
