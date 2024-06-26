@@ -1,4 +1,4 @@
-import re
+import re, random
 import io
 import json
 import logging
@@ -10,6 +10,8 @@ import pandas as pd
 from enum import Enum
 from tqdm import tqdm
 import ast
+from pretrain.prompt_lib import web_loca_all_point_prompt
+from pretrain.process_utils import pred_2_point
 
 eval_logger = logging.getLogger("lmms-eval")
 
@@ -132,27 +134,33 @@ def motif_doc_to_text(doc, model_specific_prompt_kwargs=None):
         text: str
             prompt
     '''
-
-    if 'format' in model_specific_prompt_kwargs and model_specific_prompt_kwargs['format'] == 'seeclick':
-        prev_actions_str = ""
-        for prev_a_str in doc['prev_action_str_seeclick'][-PREV_ACTION_LENGTH:]:
-            prev_actions_str += prev_a_str + "\n"
-    else:
-        prev_actions_str = ""
-        for prev_a_str in doc['prev_action_str'][-PREV_ACTION_LENGTH:]:
-            prev_actions_str += prev_a_str + "\n"
-    
     global_instr = doc['goal']
     step_instr = doc['instr']
-
-    if model_specific_prompt_kwargs is None:
-        model_specific_prompt_kwargs = {}
     pre_prompt = ""
     post_prompt = ""
-    if "pre_prompt" in model_specific_prompt_kwargs:
-        pre_prompt = model_specific_prompt_kwargs["pre_prompt"]
-    if "post_prompt" in model_specific_prompt_kwargs:
-        post_prompt = model_specific_prompt_kwargs["post_prompt"].format(goal_info=global_instr, step_instr=step_instr, previous_actions=prev_actions_str, action_space= simplified_action_space)
+    
+    # Use random prompt templates
+    if model_specific_prompt_kwargs is not None:
+        if model_specific_prompt_kwargs['format'] == 'random':
+            post_prompt = random.choice(web_loca_all_point_prompt) + f" This element is used for \"{global_instr}\""
+            
+        elif model_specific_prompt_kwargs['format'] == 'seeclick':
+            prev_actions_str = ""
+            for prev_a_str in doc['prev_action_str_seeclick'][-PREV_ACTION_LENGTH:]:
+                prev_actions_str += prev_a_str + "\n"
+        else:
+            prev_actions_str = ""
+            for prev_a_str in doc['prev_action_str'][-PREV_ACTION_LENGTH:]:
+                prev_actions_str += prev_a_str + "\n"
+
+        if "pre_prompt" in model_specific_prompt_kwargs:
+            pre_prompt = model_specific_prompt_kwargs["pre_prompt"]
+        if "post_prompt" in model_specific_prompt_kwargs:
+            post_prompt = model_specific_prompt_kwargs["post_prompt"].format(goal_info=global_instr, step_instr=step_instr, previous_actions=prev_actions_str, action_space= simplified_action_space)
+    
+    else:
+        post_prompt = random.choice(web_loca_all_point_prompt) + f" This element is used for \"{global_instr}\""
+
     text = f"{pre_prompt}{post_prompt}"
     return text
 
@@ -272,40 +280,20 @@ def motif_point_process_results(doc, result, model_specific_process_kwargs=None)
     
     # process the preds and computes squad f1 score before passing to metrics
     assert len(result) == 1, f"The result should be a list of length 1, but got {len(result)}."
-    resAns = result[0]
-    # The response from vlm is high-level semantics. 
-    # Here we extract back to the ```action type: int```` and made easy for the evaluation funciton ```def check_actions_match()``` 
-    pattern = r'[\[\(]([0-9.]+),\s*([0-9.]+)(?:,\s*([0-9.]+),\s*([0-9.]+))?[\]\)]'
-    # if model_specific_process_kwargs == 'qwen_vl_chat':
-        # pattern = r'\((\d+),\s*(\d+)\)\((\d+),\s*(\d+)\)'
+    
+    pred = result[0]['response'] if len(result) > 0 else ""
+    scale = model_specific_process_kwargs.get("scale", 1) if model_specific_process_kwargs is not None else 1
 
-    matches = re.findall(pattern, resAns)
-
-    # 处理结果
-    results = []
-    for match in matches:
-        coords = [float(coord) for coord in match if coord]
-        results.append(coords)
-    if len(results) == 0:
-        point = [0.5, 0.5]
-    elif model_specific_process_kwargs == 'qwen_vl_chat':
-        bbox = [results[0][0], results[0][1], results[1][0], results[1][1]]
-        point = [(bbox[0]+bbox[2])/2, (bbox[1]+bbox[3])/2]
-        point = [point[0]/1000, point[1]/1000]
-    else:
-        point =  results[0]
-        if len(point) == 4:
-            point = [(point[0]+point[2])/2, (point[1]+point[3])/2]
-        elif len(point) ==2:
-            point = [point[0]/100, point[1]/100]
-            if model_specific_process_kwargs == 'cogagent_chat_hf':
-                point = [point[0]/1000, point[1]/1000]
+    try:
+        pred = pred_2_point(pred, keep_box=False, scale=scale)
+    except:
+        pred = [0,0,0,0]
     # action_pred = pred_2_format_motif(resAns, model_specific_process_kwargs)
     
     # pred_action_type = action_pred["action_type"]
     gt_bbox = doc['pos_bbox'] # normalized xyxy
     gt_action_type = doc['action'] # str, type, click, swipe
-    iou_threshold = 0.1
+
     '''
     Eval on Acc@IoU=0.1, model required to predict one correct bbox, without using candidates bbox. (ScreenAI) 
     '''    
@@ -316,23 +304,22 @@ def motif_point_process_results(doc, result, model_specific_process_kwargs=None)
         # type and click
         try:
             # click_point in bbox?
-            click_point = point
-            xmin, ymin, xmax, ymax = gt_bbox  # Unpack the bounding box coordinates
-            x, y = click_point  # Unpack the click point coordinates
-            x = round(x,1)
-            y = round(y,1)
-            # Check conditions
-            inside_x = (x >= xmin) and (x <= xmax)
-            inside_y = (y >= ymin) and (y <= ymax)
-            inside_bbox = inside_x and inside_y
-            if inside_bbox:
+            if len(pred) == 2:
+                center_x, center_y = pred
+            elif len(pred) == 4:
+                center_x = (pred[0] + pred[2]) / 2
+                center_y = (pred[1] + pred[3]) / 2
+            else:
+                center_x, center_y = -1, -1
+
+            if gt_bbox[0] <= center_x <= gt_bbox[2] and gt_bbox[1] <= center_y <= gt_bbox[3]:
                 correct = 1
             else:
                 correct = 0
         except:
             correct = 0
     return {
-        "motif_gnd_result":  {'acc': correct, 'trace_id': doc['trace_id'], 'step_id': doc['step_id'], 'action': gt_action_type},
+        "motif_gnd_result":  {'goal': doc['goal'], 'step_instruc': doc['instr'], 'prompt': result[0]['prompt'], 'response': result[0]['response'], 'pred': pred, 'gt_box': gt_bbox, 'acc': correct, 'trace_id': doc['trace_id'], 'step_id': doc['step_id'], 'action': gt_action_type},
     }
 
 def motif_gnd_result(results):

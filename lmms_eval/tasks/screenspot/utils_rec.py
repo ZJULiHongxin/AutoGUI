@@ -192,12 +192,6 @@ def screenspot_rec_aggregation_result(results, metric):
     - dict: Dictionary containing the aggregated results for the specified metric.
     """
     scorers = {
-        'IoU': compute_iou,
-        'ACC@0.1': lambda x, y: compute_accuracy(x, y, 0.1),
-        'ACC@0.3': lambda x, y: compute_accuracy(x, y, 0.3),
-        'ACC@0.5': lambda x, y: compute_accuracy(x, y, 0.5),
-        'ACC@0.7': lambda x, y: compute_accuracy(x, y, 0.7),
-        'ACC@0.9': lambda x, y: compute_accuracy(x, y, 0.9),
         'Center_ACC': compute_center_accuracy
     }
     results_dict = {

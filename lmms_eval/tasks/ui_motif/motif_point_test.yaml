@@ -16,26 +16,31 @@ model_specific_prompt_kwargs:
       Locate the element according to the UI screenshot and instruction, output the bounding box.
     post_prompt: |
       Instruction: {goal_info}.
+  autogui:
+    format: random
   seeclick:
     format: seeclick
     post_prompt: |
-      In the UI, where should I click if I want to complete instruction \"{goal_info}\" (with point)?
+      In the UI, where should I click if I want to complete instruction "{goal_info}" (with point)?
   qwen_vl_chat:
     format: qwen_vl_chat
     post_prompt: |
-      In the UI, where should I click if I want to complete instruction \"{goal_info}\" (with bounding box)?
+      In the UI, where should I click if I want to complete instruction "{goal_info}" (with bounding box)?
   cogagent_chat_hf:
     format: cogagent_chat_hf
     pre_prompt: |
       Generate the target element according to the UI screenshot, instruction. Please provide the answer directly (with grounding). 
     post_prompt: |
       Instruction: {goal_info}.
+
 process_results: !function utils_point.motif_point_process_results
+
 model_specific_process_kwargs:
-  default: "default"
-  seeclick: "seeclick"
-  cogagent_chat_hf: "cogagent_chat_hf"
-  qwen_vl_chat: "qwen_vl_chat"
+  autogui:
+    scale: 100
+  qwen_vl_chat:
+    scale: 1000
+
 metric_list: # extract the value according to the metric: "key". Thus, the process_results should output the {key1: , key2: ...}
   - metric: motif_gnd_result
     aggregation: !function utils_point.motif_gnd_result
