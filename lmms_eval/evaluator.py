@@ -348,8 +348,8 @@ def evaluate(
                         "target": target,
                         "doc": doc,
                         "arguments": [tuple(a for a in req.args if isinstance(a, (int, str))) for req in requests],  # do not include image
-                        "resps": [req.resps for req in requests],
-                        "filtered_resps": [req.filtered_resps[key] for req in requests],
+                        # "resps": [req.resps for req in requests],
+                        "resps": [req.filtered_resps[key] for req in requests],
                     }
                     example.update(metrics)
                     samples[task_name].append(example)

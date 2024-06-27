@@ -1,6 +1,9 @@
-import re 
+import re, random
 import logging
 from datasets import Dataset
+from collections import defaultdict
+from pretrain.prompt_lib import web_loca_all_point_prompt
+from pretrain.process_utils import pred_2_point
 
 eval_logger = logging.getLogger("lmms-eval")
 
@@ -8,14 +11,31 @@ REC_METRICS = ["Center_ACC"]
 
 
 
-def screenspot_rec_doc_to_visual(doc):
+def func_gnd_doc_to_visual(doc):
     # Image is presented as is
     image = doc["image"].convert("RGB")
     return [image.convert("RGB")]
 
 
-def screenspot_rec_doc_to_text(doc):
-    return doc["instruction"]
+def func_gnd_doc_to_text(doc, model_specific_prompt_kwargs=None):
+    instruc = doc["func"]
+    pre_prompt = ""
+    post_prompt = ""
+
+    # Use random prompt templates
+    if model_specific_prompt_kwargs['format'] == 'random':
+        prompt = random.choice(web_loca_all_point_prompt) + f" {instruc}"
+    else: # Use model-specific prompt tempalte
+        if "pre_prompt" in model_specific_prompt_kwargs:
+            pre_prompt = model_specific_prompt_kwargs["pre_prompt"]
+        if "post_prompt" in model_specific_prompt_kwargs:
+            post_prompt = model_specific_prompt_kwargs["post_prompt"].format(goal_info=instruc)
+        
+        prompt = f"{pre_prompt}{post_prompt}"
+    
+    # if the we require a box-format output, the prompt should be modified accordingly
+    return prompt
+
 # "Bounding box coordinates are specified in the format (top-left x, top-left y, bottom-right x, bottom-right y). All values are floating point numbers bounded between 0 and 1 with two decimal places of precision (e.g., 0.15). Please provide the bounding box coordinates of the region that corresponds to the command: " + doc["instruction"]
 
 # f'In this UI screenshot, what are the bounding box coordinates of the element corresponding to the command "{doc["instruction"]}"? Output the normalized X and Y coordinates, ranging from 0.0 to 1.0. Note that the X-axis runs horizontally from left (0.0) to right (1.0), and the Y-axis runs vertically from top (0.0) to bottom (1.0). Your should carefully view the image before finally predicting the required bounding box coordinates in the format [X_min, Y_min, X_max, Y_max].' # 
@@ -44,106 +64,28 @@ def parse_float_sequence_within(input_str):
     # If the input does not contain the pattern, return the null float sequence
     return [0, 0, 0, 0]
 
-# bbox (qwen str) -> bbox
-SEECLICK_BOX_PATTERN = re.compile(r"\((\d+,\d+)\),\((\d+,\d+)\)")
-def extract_bbox(pred):
-    # Regular expression to find the content inside <box> and </box>
-    matches = SEECLICK_BOX_PATTERN.findall(pred)
-    # Convert the tuples of strings into tuples of integers
-    
-    try:
-        points = []
-        
-        for point in matches[-1]:
-            x, y = point.split(',')
-            points.extend([int(x) / 1000, int(y) / 1000])
-    except:
-        points = None
-
-    return points
-
-# point (str) -> point
-BRACKET_COORD_PATTERN = re.compile(r'\[(.*?)\]')
-GENERAL_COORD_PATTERN = re.compile(r'-?\d+\.?\d*')
-
-
-def pred_2_point(pred, keep_box=True):
-    click_point = None
-    if '[[' in pred: # For CogAgent
-        coords_start = pred.find('[[')
-        if coords_start != -1:
-            coords_end = pred.find(']]')
-            if coords_end != -1:
-                coords_str = pred[coords_start+2:coords_end]
-                try:
-                    # The bounding box coordinates in the CogAgent's output use the format [[x1, y1, x2, y2]], with the origin at the top left corner, the x-axis to the right, and the y-axis downward. (x1, y1) and (x2, y2) are the top-left and bottom-right corners, respectively, with values as relative coordinates multiplied by 1000 (prefixed with zeros to three digits).
-                    click_point = [x / 1000 for x in map(float, coords_str.split(','))]
-                except:
-                    raise ValueError("Cannot extract click point from {}".format(pred))
-    elif '[' in pred:
-        matches = [(match.group(), (match.start(), match.end())) for match in BRACKET_COORD_PATTERN.finditer(pred)]
-
-        if matches:
-            # We take the last one
-            last_valid_match_id = len(matches) - 1
-            while last_valid_match_id >=0:
-                click_point_str, start_end = matches[last_valid_match_id]
-                try:
-                    click_point = list(map(float, click_point_str[1:-1].split(',')))
-                    break
-                except: pass
-                last_valid_match_id -= 1
-            else:
-                raise ValueError("Cannot extract click point from {}".format(pred))
-
-            # If there are two coordinates enclosed with brackets and they are different and their appearances in the response are not far away, they may be represent the top-left and bottom-right corners, respectively.
-            if len(click_point) == 2 and last_valid_match_id > 0 and (start_end[0] - matches[last_valid_match_id-1][1][1]) < 30:
-                try:
-                    another_point = list(map(float, matches[last_valid_match_id-1][0][1:-1].split(', ')))
-                    if len(another_point) == 2:
-                        click_point = [(another_point[0] + click_point[0]) / 2, (another_point[1] + click_point[1]) / 2]
-                except: pass
-
-    if click_point is None: # For SeeClick
-        if '<box>' in pred: # For QWen-VL-Chat
-            click_point = extract_bbox(pred)
-        else:
-            floats = GENERAL_COORD_PATTERN.findall(pred)
-            
-            if floats:
-                click_point = []
-                for num in floats:
-                    try:
-                        num = float(num)
-                        if 0.0 <= num <=1.0: click_point.append(num)
-                    except: pass
-        
-    assert click_point is not None, "Cannot extract click point from {}".format(pred)
-    assert len(click_point) in [2,4], "Invalid click point {} found in {}".format(click_point, pred)
-    
-    if not keep_box and len(click_point) == 4:
-        click_point = [(click_point[0]+click_point[2])/2, (click_point[1]+click_point[3])/2]
-
-    return click_point
-
-
-def screenspot_rec_process_result(doc, result):
+def func_gnd_process_result(doc, result, model_specific_process_kwargs=None):
     """
     Args:
         doc: a instance of the eval dataset
-        results: [pred]
+        results: [{"prompt": prompt, "response": response}]
     Returns:
         a dictionary with key: metric name, value: metric value
     """
-    pred = result[0] if len(result) > 0 else ""
-    # pred = parse_float_sequence_within(pred)
+    pred = result[0]["response"] if len(result) > 0 else ""
+    
+    scale = model_specific_process_kwargs.get("scale", 1) if model_specific_process_kwargs is not None else 1
+        
     try:
-        pred = pred_2_point(pred)
+        pred = pred_2_point(pred, keep_box=False, scale=scale)
     except:
         pred = [0,0,0,0]
-    ann_id = doc["file_name"]
-    data_dict = {"instruction": doc["instruction"], "pred": pred, "ann_id": ann_id, 'bbox': doc['bbox'], 'data_type': doc['data_type'], 'data_source': doc['data_source']}
-    return {f"screenspot_{metric}": data_dict for metric in REC_METRICS}
+
+    w, h = list(map(int, doc['image_size'].split('x')))
+    box = [doc['unnormalized_box'][0] / w, doc['unnormalized_box'][1] / h, doc['unnormalized_box'][2] / w, doc['unnormalized_box'][3] / h]
+
+    data_dict = {"prompt": result[0]["prompt"], "response": result[0]["response"], "func": doc["func"], "pred": pred, 'bbox': box, 'elem_text': doc['elem_text'], 'elem_role': doc['elem_role'], 'image_size': doc['image_size'], 'device': doc['device']}
+    return {metric: data_dict for metric in REC_METRICS}
 
 
 def compute_iou(box1, box2):
@@ -227,7 +169,7 @@ def compute_center_accuracy(box1, box2):
     return box1[0] <= center_x <= box1[2] and box1[1] <= center_y <= box1[3]
 
 
-def screenspot_rec_aggregation_result(results, metric):
+def func_gnd_aggregation_result(results, metric):
     """
     Aggregate the results of the screenspot evaluation task using the specified metric.
 
@@ -241,12 +183,9 @@ def screenspot_rec_aggregation_result(results, metric):
     scorers = {
         'Center_ACC': compute_center_accuracy
     }
-    results_dict = {
-        metric: [], 
-        metric + '-downsize1': [], 
-        metric + '-downsize2': [],
-        metric + '-downsize4': []
-    }
+    results_dict = defaultdict(list)
+    results_dict[metric] = []
+
     for result in results:
         # Extract the ground truth and predicted bounding boxes
         gt = result['bbox']
@@ -257,7 +196,7 @@ def screenspot_rec_aggregation_result(results, metric):
 
         results_dict[metric].append(score)
         
-        results_dict[f"{metric}-{result['data_type']}"].append(score)
+        results_dict[f"{metric}-{result['device']}"].append(score)
 
     for key in results_dict:
         if len(results_dict[key]) == 0:
@@ -269,5 +208,5 @@ def screenspot_rec_aggregation_result(results, metric):
     return results_dict[metric]
 
 
-def screenspot_rec_center_acc(results):
-    return screenspot_rec_aggregation_result(results, "Center_ACC")
+def func_gnd_center_acc(results):
+    return func_gnd_aggregation_result(results, "Center_ACC")

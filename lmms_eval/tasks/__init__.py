@@ -70,6 +70,8 @@ def include_task_folder(task_dir: str, register_task: bool = True) -> None:
     Calling this function
     """
     for root, subdirs, file_list in os.walk(task_dir):
+        if '__pycache__' in root: continue
+        print(f"Adding eval scripts from {root}")
         if root == '/mnt/nvme0n1p1/hongxin_li/agent-eval/lmms_eval/tasks/ui_motif':
             print('ui motif')
         # if (subdirs == [] or subdirs == ["__pycache__"]) and (len(file_list) > 0):

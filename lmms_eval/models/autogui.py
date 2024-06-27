@@ -21,16 +21,16 @@ eval_logger = logging.getLogger("lmms-eval")
 from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig
 from peft import AutoPeftModelForCausalLM
 
-@register_model("qwen_vl_chat")
-class Qwen_VL_Chat(lmms):
+@register_model("autogui")
+class AutoGUI(lmms):
     """
-    Qwen_VL_Chat Model
-    https://github.com/QwenLM/Qwen-VL/blob/master/eval_mm/evaluate_vqa.py
+    AutoGUI Model
+    https://huggingface.co/WebAgent/AutoGUI-Qwen-v0.1-LoRA/blob/main/adapter_config.json
     """
 
     def __init__(
         self,
-        pretrained: str = "Qwen/Qwen-VL-Chat",
+        pretrained: str = "WebAgent/AutoGUI-Qwen-v0.1-LoRA",
         device: Optional[str] = "cuda",
         batch_size: Optional[Union[int, str]] = 1,
         trust_remote_code: Optional[bool] = True,

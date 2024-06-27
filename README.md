@@ -36,6 +36,10 @@ cd AutoGUI
 pip install -e .
 ```
 
+### Additional Packages
+Please also follow the installation instructions of [LLaVA](https://github.com/haotian-liu/LLaVA), [vLLM==0.4.0](https://vllm.readthedocs.io) and [SGLang==0.1.14](https://github.com/sgl-project/sglang) to install them for evaluation.
+
+Note that installing these 
 ## AutoGUI Dataset
 
 ### Training Set
@@ -98,20 +102,20 @@ Our evalaution code is adapted from lmms-eval. To evaluate a model on a specific
 python3 -m accelerate.commands.launch
     --num_processes=8 \
     -m lmms_eval \
-    --model qwen_vl_chat \
-    --model_args pretrained="WebAgent/AutoGUI-Qwen-v0.1-LoRA" \
-    --tasks funcpred \
+    --model autogui \
+    --model_args pretrained=WebAgent/AutoGUI-Qwen-v0.1-LoRA \
+    --tasks func_pred_rec \
     --batch_size 1 \
     --log_samples \
     --log_samples_suffix autogui_funcpred \
-    --output_path ./logs/
+    --output_path ./logs/ \
+    ["--limit", "0.01"] \ # For debugging
 ```
 
-The `pretrained` argument can be tither a LoRA model path that contains only the adapter or a merged model path.
+The evaluation tasks used in our paper include: `func_pred_rec`, `screenspot_rec`, `refexp`, `motif`, `vwb`.
 
-The evaluation tasks used in our paper include: `funcpred`, `screenspot`, `refexp`, `motif`, `vwb`.
+The supported models include: `autogui`, `qwen_vl_chat`, `llava_sglang`, `llava_hf`, `deepseek_vl_chat.py`, `cogagent`, `llava_hf`. If `autogui` is used, the `pretrained` argument can be either a LoRA model path that contains only the adapter or a merged model path.
 
-The supported models include: `qwen_vl_chat`, `llava_sglang`, `llava_hf`, `deepseek_vl_chat.py`, `cogagent`, `llava_hf`.
 
 ## Acknowledgement
 Our project codes are based on the [Qwen-VL](https://github.com/QwenLM/Qwen-VL), [SeeClick](https://github.com/njucckevin/SeeClick), and [lmms-eval](https://github.com/EvolvingLMMs-Lab/lmms-eval). We thank the authors for their open-source works.
