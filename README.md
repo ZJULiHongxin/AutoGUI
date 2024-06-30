@@ -1,5 +1,11 @@
 # AutoGUI: Scaling GUI Grounding with Autonomous Functionality Annotations from LLMs
 
+![Multi-Modal](https://img.shields.io/badge/Task-Multi--Modal-red)
+<a href='https://huggingface.co/HongxinLi/AutoGUI-Qwen-v0.1'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-blue'></a>
+<a href='https://huggingface.co/datasets/HongxinLi/AutoGUI-v1'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Data-green'></a>
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/Naereen/StrapDown.js/graphs/commit-activity) 
+[![Awesome](https://awesome.re/badge.svg)]()
+
 This repo opensource the training and evaluation code for AutoGUI, an automatic and scalable GUI annotation pipeline
 
 
