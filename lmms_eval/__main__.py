@@ -254,7 +254,7 @@ def cli_evaluate_single(args: Union[argparse.Namespace, None] = None) -> None:
             eval_logger.info(f"\nTask : {task_obj.config.task}\n - #num : {len(task_obj.test_docs()) if task_obj.has_test_docs() else len(task_obj.validation_docs())}")
         sys.exit()
     else:
-        tasks_list = args.tasks.split(",")
+        tasks_list = [x.strip() for x in args.tasks.split(",")]
         eval_logger.info(f"Evaluating on {len(tasks_list)} tasks.")
         task_names = utils.pattern_match(tasks_list, ALL_TASKS)
         task_missing = [task for task in tasks_list if task not in task_names and "*" not in task]  # we don't want errors if a wildcard ("*") task name was used
@@ -274,8 +274,8 @@ def cli_evaluate_single(args: Union[argparse.Namespace, None] = None) -> None:
     if args.output_path:
         hash_input = f"{args.model_args}".encode("utf-8")
         hash_output = hashlib.sha256(hash_input).hexdigest()[:6]
-        path = Path(args.output_path)
-        path = path.expanduser().resolve().joinpath(f"{datetime_str}_{args.log_samples_suffix}_{args.model}_model_args_{hash_output}")
+        path = Path(args.output_path) / args.model
+        path = path.expanduser().resolve().joinpath(f"{datetime_str}_{args.log_samples_suffix}_{args.model}_{'-'.join(task_names)}")
         args.output_path = path
 
     elif args.log_samples and not args.output_path:

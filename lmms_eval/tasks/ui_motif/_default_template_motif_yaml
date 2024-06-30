@@ -1,4 +1,4 @@
-dataset_path: cjfcsjt/MoTIF-automation
+dataset_path: HongxinLi/MOTIF-EVAL
 generation_kwargs:
   until:
     - "ASSISTANT:"

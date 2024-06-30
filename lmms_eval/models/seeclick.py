@@ -13,7 +13,7 @@ import uuid
 import os
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.generation import GenerationConfig
-
+from colorama import Fore, Style
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -68,6 +68,8 @@ class SeeClick(lmms):
             self.device_map = device_map
         if isinstance(dtype, str) and dtype != "auto":
             dtype = getattr(torch, dtype)
+        
+        print(Fore.YELLOW + f"Loading a model from {pretrained}" + Style.RESET_ALL)
         self._model = AutoModelForCausalLM.from_pretrained(pretrained, torch_dtype=dtype, trust_remote_code=True).eval() # load_in_4bit=True
         self._tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen-VL-Chat", trust_remote_code=True)
         # self._generation_config = GenerationConfig.from_pretrained(pretrained, trust_remote_code=True) can be configured in def generate_until()
@@ -225,7 +227,7 @@ class SeeClick(lmms):
                     raise ValueError(f"Expected `gen_kwargs['until']` to be of type Union[str,list] but got {type(until)}")
             
             assert self.batch_size_per_gpu == 1, "Do not support batch_size_per_gpu > 1 for now"
-            context = contexts[0]
+            context = contexts[0].strip()
 
             if "<image>" in contexts:
                 contexts = contexts.replace("<image>", "")
@@ -248,21 +250,21 @@ class SeeClick(lmms):
             if "max_new_tokens" not in gen_kwargs:
                 gen_kwargs["max_new_tokens"] = 1024
             if "temperature" not in gen_kwargs:
-                gen_kwargs["temperature"] = 0.5
+                gen_kwargs["temperature"] = 0.0
             if "top_p" not in gen_kwargs:
                 gen_kwargs["top_p"] = None
             if "num_beams" not in gen_kwargs:
                 gen_kwargs["num_beams"] = 1
-            
+            if "do_sample" not in gen_kwargs:
+                gen_kwargs["do_sample"] = True
             # https://huggingface.co/cckevinn/SeeClick/blob/main/generation_config.json
             gen_kwargs["chat_format"] = "chatml"
-            gen_kwargs["do_sample"] = True
             gen_kwargs["eos_token_id"] = 151643
             gen_kwargs["max_window_size"] = 1024
             gen_kwargs["pad_token_id"] = 151643
             gen_kwargs["top_k"] = 0
             gen_kwargs["transformers_version"] = "4.36.2"
-            eval_logger.info(f"Using gen_kwargs: {gen_kwargs}")
+            # eval_logger.info(f"Using gen_kwargs: {gen_kwargs}")
 
             # pad_token_id = self.tokenizer.pad_token_id if self.tokenizer.pad_token_id is not None else self.tokenizer.eod_id
             text_output, history = self.model.chat(self.tokenizer, 
@@ -277,7 +279,7 @@ class SeeClick(lmms):
                     # for seq2seq case where self.tok_decode(self.eot_token_id) = ''
                     text_output = text_output.split(term)[0]
 
-            res.append(text_output)
+            res.append({'prompt': context, 'response': text_output})
 
             self.cache_hook.add_partial("generate_until", (context, gen_kwargs), text_output)
             # remove visuals from tmp

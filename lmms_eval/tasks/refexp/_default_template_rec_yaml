@@ -1,0 +1,39 @@
+dataset_path: ivelin/ui_refexp_saved
+output_type: generate_until
+doc_to_visual: !function utils_rec.refexp_doc_to_visual
+doc_to_text: !function utils_rec.refexp_doc_to_text
+doc_to_target: "bbox"
+dataset_kwargs:
+  force_download: False
+generation_kwargs:
+  until:
+    - "<|start_header_id|>assistant"
+process_results: !function utils_rec.refexp_process_result
+metric_list:
+  - metric: Center_ACC
+    aggregation : !function utils_rec.refexp_center_acc
+    higher_is_better : true
+metadata:
+  version: '0.0'
+model_specific_prompt_kwargs:
+  autogui:
+    format: random
+  seeclick:
+    format: seeclick
+    post_prompt: |
+      In the UI, where should I click if I want to complete instruction "{goal_info}" (with point)?
+  qwen_vl_chat:
+    format: qwen_vl_chat
+    post_prompt: |
+      What are the bounding box coordinates of the element corresponding to the command "{goal_info}" in this UI screenshot?
+  cogagent_chat_hf:
+    format: cogagent_chat_hf
+    pre_prompt: |
+      Generate the target element according to the UI screenshot, instruction. Please provide the answer directly (with grounding). 
+    post_prompt: |
+      Instruction: {goal_info}.
+model_specific_process_kwargs:
+  autogui:
+    scale: 100
+  qwen_vl_chat:
+    scale: 1000

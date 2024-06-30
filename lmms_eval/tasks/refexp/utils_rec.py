@@ -1,6 +1,7 @@
-import re , random
+import re, random, json
 import logging
 from datasets import Dataset
+from collections import defaultdict
 from pretrain.prompt_lib import web_loca_all_point_prompt
 from pretrain.process_utils import pred_2_point
 
@@ -10,20 +11,20 @@ REC_METRICS = ["Center_ACC"]
 
 
 
-def screenspot_rec_doc_to_visual(doc):
+def refexp_doc_to_visual(doc):
     # Image is presented as is
     image = doc["image"].convert("RGB")
     return [image.convert("RGB")]
 
 
-def screenspot_rec_doc_to_text(doc, model_specific_prompt_kwargs=None):
-    instruc = doc["instruction"]
+def refexp_doc_to_text(doc, model_specific_prompt_kwargs=None):
+    instruc = doc["prompt"]
     pre_prompt = ""
     post_prompt = ""
 
     # Use random prompt templates
     if model_specific_prompt_kwargs['format'] == 'random':
-        prompt = random.choice(web_loca_all_point_prompt) + f" This element is used for \"{instruc}\""
+        prompt = random.choice(web_loca_all_point_prompt) + f" {instruc}"
     else: # Use model-specific prompt tempalte
         if "pre_prompt" in model_specific_prompt_kwargs:
             pre_prompt = model_specific_prompt_kwargs["pre_prompt"]
@@ -35,30 +36,57 @@ def screenspot_rec_doc_to_text(doc, model_specific_prompt_kwargs=None):
     # if the we require a box-format output, the prompt should be modified accordingly
     return prompt
 
-# f'What are the bounding box coordinates of the element corresponding to the command "{doc["instruction"]}" in this UI screenshot?(with grounding)'
 # "Bounding box coordinates are specified in the format (top-left x, top-left y, bottom-right x, bottom-right y). All values are floating point numbers bounded between 0 and 1 with two decimal places of precision (e.g., 0.15). Please provide the bounding box coordinates of the region that corresponds to the command: " + doc["instruction"]
 
 # f'In this UI screenshot, what are the bounding box coordinates of the element corresponding to the command "{doc["instruction"]}"? Output the normalized X and Y coordinates, ranging from 0.0 to 1.0. Note that the X-axis runs horizontally from left (0.0) to right (1.0), and the Y-axis runs vertically from top (0.0) to bottom (1.0). Your should carefully view the image before finally predicting the required bounding box coordinates in the format [X_min, Y_min, X_max, Y_max].' # 
 
-def screenspot_rec_process_result(doc, result, model_specific_process_kwargs=None):
+
+def parse_float_sequence_within(input_str):
+    """
+    Extract the first sequence of four floating-point numbers within square brackets from a string.
+
+    Args:
+    input_str (str): A string that may contain a sequence of four floats within square brackets.
+
+    Returns:
+    list: A list of four floats if the pattern is found, or a list of four zeros if the pattern is not found.
+    """
+    # Define the regex pattern to find the first instance of four floats within square brackets
+    pattern = r'\[\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)\s*\]'
+    
+    # Use re.search to find the first match of the pattern in the input string
+    match = re.search(pattern, input_str)
+    
+    # If a match is found, convert the captured groups into a list of floats
+    if match:
+        return [float(match.group(i)) for i in range(1, 5)]
+    
+    # If the input does not contain the pattern, return the null float sequence
+    return [0, 0, 0, 0]
+
+def refexp_process_result(doc, result, model_specific_process_kwargs=None):
     """
     Args:
         doc: a instance of the eval dataset
-        results: [pred]
+        results: [{"prompt": prompt, "response": response}]
     Returns:
         a dictionary with key: metric name, value: metric value
     """
-    pred = result[0]['response'] if len(result) > 0 else ""
-
+    pred = result[0]["response"] if len(result) > 0 else ""
+    
     scale = model_specific_process_kwargs.get("scale", 1) if model_specific_process_kwargs is not None else 1
-
+        
     try:
         pred = pred_2_point(pred, keep_box=False, scale=scale)
     except:
         pred = [0,0,0,0]
-    ann_id = doc["file_name"]
-    data_dict = {"prompt": result[0]["prompt"], "response": result[0]["response"],"instruction": doc["instruction"], "pred": pred, "ann_id": ann_id, 'bbox': doc['bbox'], 'data_type': doc['data_type'], 'data_source': doc['data_source']}
-    return {f"screenspot_{metric}": data_dict for metric in REC_METRICS}
+
+    box = json.loads(doc['target_bounding_box'])
+    
+    box = [box['xmin'], box['ymin'], box['xmax'], box['ymax']]
+
+    data_dict = {"prompt": result[0]["prompt"], "response": result[0]["response"], "instruc": doc["prompt"], "pred": pred, 'bbox': box}
+    return {metric: data_dict for metric in REC_METRICS}
 
 
 def compute_iou(box1, box2):
@@ -125,6 +153,10 @@ def compute_center_accuracy(box1, box2):
     Returns:
     - bool: True if the center point of box 2 is within box 1, False otherwise.
     """
+    if isinstance(box1, str):
+        box1 = list(map(int, box1.strip('[]()').split(',')))
+    if isinstance(box2, str):
+        box2 = list(map(int, box2.strip('[]()').split(',')))
     # Compute the center point of box 2
     if len(box2) == 2:
         center_x, center_y = box2
@@ -138,7 +170,7 @@ def compute_center_accuracy(box1, box2):
     return box1[0] <= center_x <= box1[2] and box1[1] <= center_y <= box1[3]
 
 
-def screenspot_rec_aggregation_result(results, metric):
+def refexp_aggregation_result(results, metric):
     """
     Aggregate the results of the screenspot evaluation task using the specified metric.
 
@@ -152,15 +184,9 @@ def screenspot_rec_aggregation_result(results, metric):
     scorers = {
         'Center_ACC': compute_center_accuracy
     }
-    results_dict = {
-        metric: [], 
-        metric + '-mobile_text': [], 
-        metric + '-mobile_icon': [],
-        metric + '-web_text': [], 
-        metric + '-web_icon': [],
-        metric + '-desktop_text': [], 
-        metric + '-desktop_icon': [],
-    }
+    results_dict = defaultdict(list)
+    results_dict[metric] = []
+
     for result in results:
         # Extract the ground truth and predicted bounding boxes
         gt = result['bbox']
@@ -170,21 +196,7 @@ def screenspot_rec_aggregation_result(results, metric):
         score = scorers[metric](gt, pred)
 
         results_dict[metric].append(score)
-        if result['data_type'] == 'text':
-            if 'ios' in result['data_source'] or 'android' in result['data_source']:
-                results_dict[metric + '-mobile_text'].append(score)
-            elif 'macos' in result['data_source'] or 'windows' in result['data_source']:
-                results_dict[metric + '-desktop_text'].append(score)
-            else:
-                results_dict[metric + '-web_text'].append(score)
-        else:
-            if 'ios' in result['data_source'] or 'android' in result['data_source']:
-                results_dict[metric + '-mobile_icon'].append(score)
-            elif 'macos' in result['data_source'] or 'windows' in result['data_source']:
-                results_dict[metric + '-desktop_icon'].append(score)
-            else:
-                results_dict[metric + '-web_icon'].append(score)
-
+        
     for key in results_dict:
         if len(results_dict[key]) == 0:
             results_dict[key] = 0
@@ -195,31 +207,5 @@ def screenspot_rec_aggregation_result(results, metric):
     return results_dict[metric]
 
 
-def screenspot_rec_iou(results):
-    return screenspot_rec_aggregation_result(results, "IoU")
-
-
-def screenspot_rec_acc01(results):
-    return screenspot_rec_aggregation_result(results, "ACC@0.1")
-
-def screenspot_rec_acc03(results):
-    return screenspot_rec_aggregation_result(results, "ACC@0.3")
-
-
-def screenspot_rec_acc05(results):
-    return screenspot_rec_aggregation_result(results, "ACC@0.5")
-
-
-def screenspot_rec_acc07(results):
-    return screenspot_rec_aggregation_result(results, "ACC@0.7")
-
-
-def screenspot_rec_acc09(results):
-    return screenspot_rec_aggregation_result(results, "ACC@0.9")
-
-
-def screenspot_rec_center_acc(results):
-    return screenspot_rec_aggregation_result(results, "Center_ACC")
-
-if __name__ == '__main__':
-    print(pred_2_point("123,123"))
+def refexp_center_acc(results):
+    return refexp_aggregation_result(results, "Center_ACC")

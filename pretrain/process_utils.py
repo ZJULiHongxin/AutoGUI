@@ -91,7 +91,7 @@ def pred_2_point(pred, keep_box=True, scale=1000):
                 coords_str = pred[coords_start+2:coords_end]
                 try:
                     # The bounding box coordinates in the CogAgent's output use the format [[x1, y1, x2, y2]], with the origin at the top left corner, the x-axis to the right, and the y-axis downward. (x1, y1) and (x2, y2) are the top-left and bottom-right corners, respectively, with values as relative coordinates multiplied by 1000 (prefixed with zeros to three digits).
-                    click_point = [x / 1000 for x in map(float, coords_str.split(','))]
+                    click_point = [x / scale for x in map(float, coords_str.split(','))]
                 except:
                     raise ValueError("Cannot extract click point from {}".format(pred))
     elif '[' in pred:
