@@ -1,9 +1,8 @@
 group: vwb
-dataset_path: sujr/vwb_eg_extend
+dataset_path: HongxinLi/VWB-EVAL
 task: vwb_point_test
-test_split: train # in fact this is train is test set. I upload with mislabled tag
+test_split: test
 include: _default_template_vwb_yaml
-# process_docs: !function utils_point.vwb_preprocess_dataset
 output_type: generate_until
 doc_to_visual: !function utils_point.vwb_doc_to_visual
 doc_to_text: !function utils_point.vwb_doc_to_text
@@ -15,6 +14,8 @@ model_specific_prompt_kwargs:
     format: default
     post_prompt: |
       In the UI, where should I click if I want to complete instruction \"{goal_info}\"? Directly output the bounding box.
+  autogui:
+    format: random
   seeclick:
     format: seeclick
     post_prompt: |
@@ -37,28 +38,14 @@ model_specific_prompt_kwargs:
       In this UI screenshot, what is the position of the element corresponding to the command "{goal_info}"? Output the normalized X and Y coordinates, ranging from 0.0 to 1.0. Note that the X-axis runs horizontally from left (0.0) to right (1.0), and the Y-axis runs vertically from top (0.0) to bottom (1.0). Your should carefully view the image before finally predicting the required position in the format [X, Y].
 process_results: !function utils_point.vwb_point_process_results
 model_specific_process_kwargs:
-  default: "default"
-  seeclick: "seeclick"
-  cogagent_chat_hf: "cogagent_chat_hf"
-  qwen_vl_chat: "qwen_vl_chat"
+  autogui:
+    scale: 100
+  qwen_vl_chat:
+    scale: 1000
 metric_list: # extract the value according to the metric: "key". Thus, the process_results should output the {key1: , key2: ...}
-  - metric: vwb_gnd_result
+  - metric: vwb_elem-gnd_result
     aggregation: !function utils_point.vwb_gnd_result
     higher_is_better: true
-  # - metric: partial_action_bbox_acc # action_point
-  #   aggregation: !function utils_point.vwb_partial_aggregation_result
-  #   higher_is_better: true
-  # - metric: complete_action_bbox_acc
-  #   aggregation: !function utils_point.vwb_complete_aggregation_result
-  #   higher_is_better: true
-  # - metric: partial_action_acc
-  #   aggregation: !function utils_point.vwb_partial_aggregation_result
-  #   higher_is_better: true
-  # - metric: complete_action_acc
-  #   aggregation: !function utils_point.vwb_complete_aggregation_result
-  #   higher_is_better: true
-  # - metric: nogroup_action_bbox_acc
-  #   aggregation: !function utils_point.vwb_nogroup_aggregation_result
-  #   higher_is_better: true
-
-
+  - metric: vwb_action-gnd_result
+    aggregation: !function utils_point.vwb_gnd_result
+    higher_is_better: true
