@@ -164,4 +164,3 @@ wandb/
 pretrain/eval_results/
 eval_results/
 /logs
-.vscode
