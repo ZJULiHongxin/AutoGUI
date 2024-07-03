@@ -856,10 +856,10 @@ class ConfigurableTask(Task):
                     return text_string
         elif callable(doc_to_text):
             return (
-                doc_to_text(doc, self.model_specific_prompt_kwargs)
+                doc_to_text(doc, self.model_name, self.model_specific_prompt_kwargs)
                 if self.model_specific_prompt_kwargs is not None
                 else doc_to_text(
-                    doc,
+                    doc, self.model_name
                 )
             )
         # Used when applying a Promptsource template

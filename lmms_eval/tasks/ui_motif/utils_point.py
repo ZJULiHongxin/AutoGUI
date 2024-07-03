@@ -10,7 +10,7 @@ import pandas as pd
 from enum import Enum
 from tqdm import tqdm
 import ast
-from pretrain.prompt_lib import web_loca_all_point_prompt
+from pretrain.prompt_lib import web_loca_all_point_prompt, apply_vlm_template
 from pretrain.process_utils import pred_2_point
 
 eval_logger = logging.getLogger("lmms-eval")
@@ -119,7 +119,7 @@ def motif_doc_to_target(doc):
 def motif_doc_to_target_wa(doc):
     return doc['pos_bbox']
 
-def motif_doc_to_text(doc, model_specific_prompt_kwargs=None):
+def motif_doc_to_text(doc, model_name='', model_specific_prompt_kwargs=None):
     '''
     Args:
         doc: dict
@@ -138,31 +138,34 @@ def motif_doc_to_text(doc, model_specific_prompt_kwargs=None):
     step_instr = doc['instr']
     pre_prompt = ""
     post_prompt = ""
-    
-    # Use random prompt templates
-    if model_specific_prompt_kwargs is not None:
-        if model_specific_prompt_kwargs['format'] == 'random':
-            post_prompt = random.choice(web_loca_all_point_prompt) + f" This element is used for \"{global_instr}\""
-            
-        elif model_specific_prompt_kwargs['format'] == 'seeclick':
-            prev_actions_str = ""
-            for prev_a_str in doc['prev_action_str_seeclick'][-PREV_ACTION_LENGTH:]:
-                prev_actions_str += prev_a_str + "\n"
-        else:
-            prev_actions_str = ""
-            for prev_a_str in doc['prev_action_str'][-PREV_ACTION_LENGTH:]:
-                prev_actions_str += prev_a_str + "\n"
 
-        if "pre_prompt" in model_specific_prompt_kwargs:
-            pre_prompt = model_specific_prompt_kwargs["pre_prompt"]
-        if "post_prompt" in model_specific_prompt_kwargs:
-            post_prompt = model_specific_prompt_kwargs["post_prompt"].format(goal_info=global_instr, step_instr=step_instr, previous_actions=prev_actions_str, action_space= simplified_action_space)
-    
+    if model_specific_prompt_kwargs is None:
+        prompt = apply_vlm_template(global_instr, model_name)
     else:
-        post_prompt = random.choice(web_loca_all_point_prompt) + f" This element is used for \"{global_instr}\""
+        # Use random prompt templates
+        if model_specific_prompt_kwargs is not None:
+            if model_specific_prompt_kwargs['format'] == 'random':
+                post_prompt = random.choice(web_loca_all_point_prompt) + f" This element is used for \"{global_instr}\""
+                
+            elif model_specific_prompt_kwargs['format'] == 'seeclick':
+                prev_actions_str = ""
+                for prev_a_str in doc['prev_action_str_seeclick'][-PREV_ACTION_LENGTH:]:
+                    prev_actions_str += prev_a_str + "\n"
+            else:
+                prev_actions_str = ""
+                for prev_a_str in doc['prev_action_str'][-PREV_ACTION_LENGTH:]:
+                    prev_actions_str += prev_a_str + "\n"
 
-    text = f"{pre_prompt}{post_prompt}"
-    return text
+            if "pre_prompt" in model_specific_prompt_kwargs:
+                pre_prompt = model_specific_prompt_kwargs["pre_prompt"]
+            if "post_prompt" in model_specific_prompt_kwargs:
+                post_prompt = model_specific_prompt_kwargs["post_prompt"].format(goal_info=global_instr, step_instr=step_instr, previous_actions=prev_actions_str, action_space= simplified_action_space)
+        
+        else:
+            post_prompt = random.choice(web_loca_all_point_prompt) + f" This element is used for \"{global_instr}\""
+
+        prompt = f"{pre_prompt}{post_prompt}"
+    return prompt
 
 def motif_doc_to_text_wa(doc, model_specific_prompt_kwargs=None):
     '''
@@ -318,6 +321,11 @@ def motif_point_process_results(doc, result, model_specific_process_kwargs=None)
                 correct = 0
         except:
             correct = 0
+    
+    # pop image
+    for k in ["image", "image_w_bbox", "ui_neg_objs_type_id", "ui_neg_objs_clickable", "ui_neg_objs_bbox", "ui_neg_objs_str"]:
+        if k in doc: doc.pop(k)
+        
     return {
         "motif_gnd_result":  {'goal': doc['goal'], 'step_instruc': doc['instr'], 'prompt': result[0]['prompt'], 'response': result[0]['response'], 'pred': pred, 'gt_box': gt_bbox, 'acc': correct, 'trace_id': doc['trace_id'], 'step_id': doc['step_id'], 'action': gt_action_type},
     }

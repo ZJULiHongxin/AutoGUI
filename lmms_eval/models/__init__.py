@@ -1,4 +1,4 @@
-import os
+import os, traceback
 
 AVAILABLE_MODELS = {
     "autogui": "AutoGUI",
@@ -13,13 +13,16 @@ AVAILABLE_MODELS = {
     "minicpm_v": "MiniCPM_V",
     "cogagent_chat_hf": "CogAgentChatHf",
     "seeclick": "SeeClick",
-    "internvl_chat": "InternVLChat"
+    "internvl_chat": "InternVLChat",
+    "slime": "SLIME",
+    "monkey": "Monkey"
 }
 
 for model_name, model_class in AVAILABLE_MODELS.items():
     try:
         exec(f"from .{model_name} import {model_class}")
     except ImportError:
+        traceback.print_exc()
         print('Invalid VLM model:', model_name, model_class)
 
 

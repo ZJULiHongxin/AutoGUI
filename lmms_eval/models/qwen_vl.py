@@ -296,7 +296,7 @@ class Qwen_VL(lmms):
                         # for seq2seq case where self.tok_decode(self.eot_token_id) = ''
                         text_outputs = text_outputs.split(term)[0]
 
-                res.append(text_outputs)
+                res.append({"prompt": context, "response": text_outputs})
 
                 self.cache_hook.add_partial("generate_until", (context, gen_kwargs), text_outputs)
                 # remove visuals from tmp

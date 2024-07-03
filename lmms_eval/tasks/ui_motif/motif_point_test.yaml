@@ -10,12 +10,6 @@ doc_to_target: !function  utils_point.motif_doc_to_target
 metadata:
   - version: 0.0
 model_specific_prompt_kwargs:
-  default:
-    format: default
-    pre_prompt: |
-      Locate the element according to the UI screenshot and instruction, output the bounding box.
-    post_prompt: |
-      Instruction: {goal_info}.
   autogui:
     format: random
   seeclick:
@@ -39,6 +33,8 @@ model_specific_process_kwargs:
   autogui:
     scale: 100
   qwen_vl_chat:
+    scale: 1000
+  monkey:
     scale: 1000
 
 metric_list: # extract the value according to the metric: "key". Thus, the process_results should output the {key1: , key2: ...}

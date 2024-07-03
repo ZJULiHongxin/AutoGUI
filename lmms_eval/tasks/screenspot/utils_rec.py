@@ -1,7 +1,7 @@
 import re , random
 import logging
 from datasets import Dataset
-from pretrain.prompt_lib import web_loca_all_point_prompt
+from pretrain.prompt_lib import web_loca_all_point_prompt, apply_vlm_template
 from pretrain.process_utils import pred_2_point
 
 eval_logger = logging.getLogger("lmms-eval")
@@ -16,21 +16,24 @@ def screenspot_rec_doc_to_visual(doc):
     return [image.convert("RGB")]
 
 
-def screenspot_rec_doc_to_text(doc, model_specific_prompt_kwargs=None):
+def screenspot_rec_doc_to_text(doc, model_name='', model_specific_prompt_kwargs=None):
     instruc = doc["instruction"]
     pre_prompt = ""
     post_prompt = ""
 
-    # Use random prompt templates
-    if model_specific_prompt_kwargs['format'] == 'random':
-        prompt = random.choice(web_loca_all_point_prompt) + f" This element is used for \"{instruc}\""
-    else: # Use model-specific prompt tempalte
-        if "pre_prompt" in model_specific_prompt_kwargs:
-            pre_prompt = model_specific_prompt_kwargs["pre_prompt"]
-        if "post_prompt" in model_specific_prompt_kwargs:
-            post_prompt = model_specific_prompt_kwargs["post_prompt"].format(goal_info=instruc)
-        
-        prompt = f"{pre_prompt}{post_prompt}"
+    if model_specific_prompt_kwargs is None:
+        prompt = apply_vlm_template(instruc, model_name)
+    else:
+        # Use random prompt templates
+        if model_specific_prompt_kwargs['format'] == 'random':
+            prompt = random.choice(web_loca_all_point_prompt) + f" This element is used for \"{instruc}\""
+        else: # Use model-specific prompt tempalte
+            if "pre_prompt" in model_specific_prompt_kwargs:
+                pre_prompt = model_specific_prompt_kwargs["pre_prompt"]
+            if "post_prompt" in model_specific_prompt_kwargs:
+                post_prompt = model_specific_prompt_kwargs["post_prompt"].format(goal_info=instruc)
+            
+            prompt = f"{pre_prompt}{post_prompt}"
     
     # if the we require a box-format output, the prompt should be modified accordingly
     return prompt

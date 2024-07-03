@@ -22,6 +22,10 @@ model_specific_prompt_kwargs:
       Task Instruction: {goal_info}.
       Step Instruction: {step_instr}.
       Previous actions: {previous_actions}.
+  slime:
+    format: slime
+    post_prompt: |
+      In this UI screenshot, what is the position of the element corresponding to the command "{goal_info}"? Output the normalized X and Y coordinates, ranging from 0.0 to 1.0. The X-axis runs horizontally from left (0.0) to right (1.0), and the Y-axis runs vertically from top (0.0) to bottom (1.0). Predict the required position in the format [X,Y].
   cogagent_chat_hf:
     format: cogagent_chat_hf
     pre_prompt: |

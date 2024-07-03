@@ -10,10 +10,6 @@ doc_to_target: !function  utils_point.vwb_doc_to_target
 metadata:
   - version: 0.0
 model_specific_prompt_kwargs:
-  default:
-    format: default
-    post_prompt: |
-      In the UI, where should I click if I want to complete instruction \"{goal_info}\"? Directly output the bounding box.
   autogui:
     format: random
   seeclick:
@@ -41,6 +37,8 @@ model_specific_process_kwargs:
   autogui:
     scale: 100
   qwen_vl_chat:
+    scale: 1000
+  monkey:
     scale: 1000
 metric_list: # extract the value according to the metric: "key". Thus, the process_results should output the {key1: , key2: ...}
   - metric: vwb_elem-gnd_result

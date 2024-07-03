@@ -39,19 +39,20 @@ import random
 random.seed(1234)
 
 # ScreenSpot
-POSITION_PROMPT = """In this UI screenshot, what is the position of the element corresponding to the command "{}"? Output the normalized X and Y coordinates, ranging from 0.0 to 1.0. Note that the X-axis runs horizontally from left (0.0) to right (1.0), and the Y-axis runs vertically from top (0.0) to bottom (1.0). Your should carefully view the image before finally predicting the required position in the format [X, Y]."""
+POSITION_PROMPT = """In this UI screenshot, what is the position of the element corresponding to the command "{}"? Output the normalized X and Y coordinates, ranging from 0.00 to 1.00. Note that the X-axis runs horizontally from left (0.00) to right (1.00), and the Y-axis runs vertically from top (0.00) to bottom (1.00). Your should carefully view the image before finally predicting the required position in the format [X, Y] (two decimal places)."""
 
-BOX_PROMPT = """In this UI screenshot, what are the bounding box coordinates of the element corresponding to the command "{}"? Output the normalized X and Y coordinates, ranging from 0.0 to 1.0. Note that the X-axis runs horizontally from left (0.0) to right (1.0), and the Y-axis runs vertically from top (0.0) to bottom (1.0). Your should carefully view the image before finally predicting the required bounding box coordinates in the format [X_min, Y_min, X_max, Y_max]."""
+BOX_PROMPT = """In this UI screenshot, what are the bounding box coordinates of the element corresponding to the command "{}"? Output the normalized X and Y coordinates, ranging from 0.00 to 1.00. Note that the X-axis runs horizontally from left (0.00) to right (1.00), and the Y-axis runs vertically from top (0.00) to bottom (1.00). Your should carefully view the image before finally predicting the required bounding box coordinates in the format [X_min, Y_min, X_max, Y_max]."""
 
 LLAVA16_START, LLAVA16_END = "[INST] ", " [/INST]"
 LLAVA15_START, LLAVA15_END = "USER: ", "\nASSISTANT:"
 LLAVA_IMAGE_PLACEHOLDER = "<image>"
 
 # Llava-1.6 Example: "[INST] <image>\nIn this UI screenshot, what is the position of the element corresponding to the command "{}"? [/INST]"
-def get_llava_prompt(is_v16, output_box):
+def get_llava_prompt(is_v16, add_special_tokens=True, output_box=False):
     prompt = BOX_PROMPT if output_box else POSITION_PROMPT
     
-    prompt = f'{LLAVA16_START}{LLAVA_IMAGE_PLACEHOLDER}{prompt}{LLAVA16_END}' if is_v16 else f'{LLAVA15_START}{LLAVA_IMAGE_PLACEHOLDER}{prompt}{LLAVA15_END}'
+    if add_special_tokens:
+        prompt = f'{LLAVA16_START}{LLAVA_IMAGE_PLACEHOLDER}{prompt}{LLAVA16_END}' if is_v16 else f'{LLAVA15_START}{LLAVA_IMAGE_PLACEHOLDER}{prompt}{LLAVA15_END}'
     
     return prompt
 
@@ -193,7 +194,7 @@ def get_cogagent_prompt(output_box):
 
 # QWen-VL: https://huggingface.co/Qwen/Qwen-VL-Chat
 
-QWENVL_BOX_PROMPT = """What are the bounding box coordinates of the element corresponding to the command "{}" in this UI screenshot?"""
+QWENVL_BOX_PROMPT = """What are the bounding box coordinates of the element corresponding to the functionality "{}" in this UI screenshot?"""
 def get_qwenvl_prompt(output_box):
     prompt = QWENVL_BOX_PROMPT if output_box else POSITION_PROMPT
         
@@ -219,6 +220,8 @@ def apply_vlm_template(task_instruction, model_name, output_box=False):
     if 'llava' in model_name:
         # Llava-1.6 Example: "[INST] <image>\nIn this UI screenshot, what is the position of the element corresponding to the command "{}"? [/INST]"
         prompt = get_llava_prompt(is_v16='1.6' in model_name, output_box=output_box)
+    elif 'slime' in model_name:
+        prompt = get_qwenvl_prompt(output_box=True) # get_llava_prompt(is_v16=False, add_special_tokens=False, output_box=output_box)
     elif 'deepseek' in model_name:
         # DeepSeek-vl Example: '<image_placeholder>In this UI screenshot, what is the position of the element corresponding to the command "{question}"?'
         prompt = get_deepseek_prompt(output_box=output_box)
@@ -228,6 +231,9 @@ def apply_vlm_template(task_instruction, model_name, output_box=False):
     elif 'qwen' in model_name:
         # Qwen-VL Example: "What are the bounding box coordinates of the element corresponding to the command \"{}\" in this UI screenshot?"
         prompt = get_qwenvl_prompt(output_box=output_box)
+    elif 'monkey' in model_name:
+        # Qwen-VL Example: "What are the bounding box coordinates of the element corresponding to the command \"{}\" in this UI screenshot?"
+        prompt = get_qwenvl_prompt(output_box=True)
     elif 'seeclick' in model_name:
         # SeeClick Example: "In this UI screenshot, what is the position of the element corresponding to the command \"{}\" (with bbox)?"
         prompt = get_seeclick_prompt(output_box=output_box)
