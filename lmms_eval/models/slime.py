@@ -107,10 +107,10 @@ class SLIME(lmms):
             self._rank = 0
             self._word_size = 1
 
-        if 'llama3' in pretrained.lower():
+        if 'llama' in pretrained.lower():
             self.conv_mode = 'llama3'
-        elif 'vicuna_v1' in pretrained.lower():
-            self.conv_mode = 'llama3'
+        elif 'vicuna' in pretrained.lower():
+            self.conv_mode = 'vicuna_v1'
 
     @property
     def config(self):
@@ -314,7 +314,7 @@ class SLIME(lmms):
             text_outputs = self.tokenizer.batch_decode(cont, skip_special_tokens=True)[0]
 
             if (hasattr(self, "accelerator") and self.accelerator.is_main_process or not hasattr(self, "accelerator") is None) and doc_id[0] % 5 == 0:
-                print(f"Generated text for doc ID {doc_id[0]}:\n\n{text_outputs}\n")
+                print(f"Generated text for doc ID {doc_id[0]}:\nprompt: {context}\nresponse:{text_outputs}\n")
 
             res.append({'prompt':text_outputs, 'response':text_outputs})
             self.cache_hook.add_partial("generate_until", (context, gen_kwargs), text_outputs)
