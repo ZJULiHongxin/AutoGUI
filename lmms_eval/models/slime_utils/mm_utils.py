@@ -53,15 +53,14 @@ def select_best_resolution_uhd(original_size, processor_size):
     origin_image_width, origin_image_height = original_size
     scale = origin_image_width*origin_image_height/(IMAGE_WIDTH*IMAGE_HEIGHT)  
     scale = math.ceil(scale)
-    if scale > 6:
-        scale = 6
-    elif scale == 1:
-        scale = 2
     # if scale > 6:
     #     scale = 6
     # elif scale == 1:
-    #     print(scale)
-    #     return (336, 336)
+    #     scale = 2
+    if scale > 6:
+        scale = 6
+    elif scale == 1:
+        return (336, 336)
 
     def factorize(n):
         factors = []
@@ -109,6 +108,9 @@ def resize_and_pad_image(image, target_resolution):
     """
     original_width, original_height = image.size
     target_width, target_height = target_resolution
+
+    if original_width == target_width and original_height == target_height:
+        return image
 
     scale_w = target_width / original_width
     scale_h = target_height / original_height

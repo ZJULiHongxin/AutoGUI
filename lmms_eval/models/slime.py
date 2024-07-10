@@ -52,6 +52,7 @@ class SLIME(lmms):
         device_map: str = "",
         chat_template: Optional[str] = None,
         use_cache: bool = True,
+        use_global_only: bool = False,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -70,8 +71,10 @@ class SLIME(lmms):
 
         model_name = get_model_name_from_path(pretrained)
 
-        self._tokenizer, self._model, self._image_processor, context_len = load_pretrained_model(pretrained, None, model_name)
+        self._tokenizer, self._model, self._image_processor, context_len = load_pretrained_model(pretrained, None, model_name, use_flash_attn=True)
 
+        # ablations only
+        self.use_global_only = use_global_only
         self._config = self._model.config
         self.batch_size_per_gpu = int(batch_size)
         self.chat_template = chat_template
@@ -166,64 +169,15 @@ class SLIME(lmms):
     def tok_decode(self, tokens):
         return self.tokenizer.decode(tokens)
 
-    def loglikelihood(self, requests: List[Instance]) -> List[Tuple[float, bool]]:
-        res = []
-        pbar = tqdm(total=len(requests), disable=(self.rank != 0), desc="Model Responding")
-
-        for context, doc_to_target, doc_to_visual, doc_id, task, split in [reg.args for reg in requests]:
-            # encode, pad, and truncate contexts for this batch
-            if type(doc_to_target) == str:
-                continuation = doc_to_target
-            else:
-                continuation = doc_to_target(self.task_dict[task][split][doc_id])
-            visuals = [doc_to_visual(self.task_dict[task][split][doc_id])]
-            visuals = self.flatten(visuals)
-
-            image_tokens = [DEFAULT_IMAGE_TOKEN] * len(visuals)
-            image_tokens = " ".join(image_tokens)
-            context = f"{image_tokens}\n{context}"
-            # Apply chat template
-            messages = [{"role": "user", "content": context}, {"role": "assistant", "content": continuation}]
-            if self.chat_template is not None:
-                self.tokenizer.chat_template = self.chat_template
-                prompt = self.tokenizer.apply_chat_template(messages[:-1], tokenize=False, add_generation_prompt=True)
-                prompt_and_continuation = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
-            elif self.tokenizer.chat_template is not None:
-                prompt = self.tokenizer.apply_chat_template(messages[:-1], tokenize=False, add_generation_prompt=True)
-                prompt_and_continuation = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
-
-
-            formatted_contexts = [prompt]
-            formatted_continuation = [prompt_and_continuation]
-            model_inputs = self._image_processor(text=formatted_continuation, images=visuals).to(self._device, self.model.dtype)
-            labels = model_inputs["input_ids"].clone()
-            contxt_id = self._image_processor(text=formatted_contexts, return_tensors="pt")["input_ids"]
-            labels[: len(contxt_id)] = -100
-
-            if self.accelerator.is_main_process and doc_id % 100 == 0:
-                print(f"Prompt for doc ID {doc_id}:\n\n{formatted_contexts[0]}\n")
-                print(f"Prompt and continuation for doc ID {doc_id}:\n\n{formatted_continuation[0]}\n")
-
-            with torch.inference_mode():
-                outputs = self.model(**model_inputs, labels=labels)
-            loss = outputs["loss"]
-            logits = outputs["logits"]
-            greedy_tokens = logits.argmax(dim=-1)
-            cont_toks = model_inputs["input_ids"][:, contxt_id.shape[1] :]  # [1, seq]
-            greedy_tokens = greedy_tokens[:, contxt_id.shape[1] : model_inputs["input_ids"].shape[1]]  # [1, seq]
-            max_equal = (greedy_tokens == cont_toks).all()
-            res.append((float(loss.item()), bool(max_equal)))
-            pbar.update(1)
-
-        pbar.close()
-        return res
-
     def flatten(self, input):
         new_list = []
         for i in input:
             for j in i:
                 new_list.append(j)
         return new_list
+
+    def loglikelihood(self, requests: List[Instance]) -> List[Tuple[float, bool]]:
+        pass
 
     def generate_until(self, requests: List[Instance]) -> List[str]:
         res = []
@@ -291,6 +245,10 @@ class SLIME(lmms):
                 gen_kwargs["top_p"] = None
             if "num_beams" not in gen_kwargs:
                 gen_kwargs["num_beams"] = 1
+
+            if self.use_global_only:
+                for i in range(len(visuals)):
+                    visuals[0] = visuals[i].resize((336,336))
 
             img_tensor =  process_images(visuals, self._image_processor, self._model.config)[0].to(dtype=self.model.dtype, device=self.model.device)
             
