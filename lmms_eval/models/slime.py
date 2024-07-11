@@ -52,7 +52,7 @@ class SLIME(lmms):
         device_map: str = "",
         chat_template: Optional[str] = None,
         use_cache: bool = True,
-        use_global_only: bool = False,
+        topp: Optional[float] = None,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -71,10 +71,8 @@ class SLIME(lmms):
 
         model_name = get_model_name_from_path(pretrained)
 
-        self._tokenizer, self._model, self._image_processor, context_len = load_pretrained_model(pretrained, None, model_name, use_flash_attn=True)
+        self._tokenizer, self._model, self._image_processor, context_len = load_pretrained_model(pretrained, None, model_name, use_flash_attn=True, topp=topp)
 
-        # ablations only
-        self.use_global_only = use_global_only
         self._config = self._model.config
         self.batch_size_per_gpu = int(batch_size)
         self.chat_template = chat_template
@@ -246,11 +244,12 @@ class SLIME(lmms):
             if "num_beams" not in gen_kwargs:
                 gen_kwargs["num_beams"] = 1
 
-            if self.use_global_only:
-                for i in range(len(visuals)):
-                    visuals[0] = visuals[i].resize((336,336))
+            # if self.use_global_only:
+            #     for i in range(len(visuals)):
+            #         visuals[0] = visuals[i].resize((336,336))
 
-            img_tensor =  process_images(visuals, self._image_processor, self._model.config)[0].to(dtype=self.model.dtype, device=self.model.device)
+            # the n_dims of img_tensor must be 5 (including the bs dimention); otherwise, the text-guided sampler will not work.
+            img_tensor = process_images(visuals, self._image_processor, self._model.config).to(dtype=self.model.dtype, device=self.model.device)
             
             input_ids = tokenizer_image_token(prompt, self.tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0)
 

@@ -23,7 +23,7 @@ from slime_utils.model import *
 from slime_utils.constants import DEFAULT_IMAGE_PATCH_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
 
 
-def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, load_4bit=False, device_map="auto", device="cuda", use_flash_attn=False, **kwargs):
+def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, load_4bit=False, device_map="auto", device="cuda", use_flash_attn=False, topp=None, **kwargs):
     kwargs = {"device_map": device_map, **kwargs}
 
     if device != "cuda":
@@ -120,8 +120,14 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
                 )
             else:
                 tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
+                model_config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
+                
+                if topp is not None:
+                    model_config.mm_resampler_topp = topp
+ 
                 model = LlavaLlamaForCausalLM.from_pretrained(
                     model_path,
+                    config=model_config,
                     low_cpu_mem_usage=True,
                     **kwargs
                 )

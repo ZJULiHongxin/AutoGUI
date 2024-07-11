@@ -257,17 +257,25 @@ class TextGuidedSampler(nn.Module):
 
         local_probs = softmax_with_temperature(local_probs, temperature=self.temp)
         # Sort the probabilities in descending order and get the corresponding indices
-        sorted_probs, sorted_indices = torch.sort(local_probs, descending=True)
+        sorted_probs, sorted_indices = torch.sort(local_probs, descending=True) # sorted_indices: a vector without Batch Size dim
 
         # Calculate the cumulative sum of probabilities
         cumulative_probs = torch.cumsum(sorted_probs, dim=0)
 
         # Find the indices where the cumulative sum exceeds the threshold
-        selected_indices = (cumulative_probs <= self.topp).nonzero(as_tuple=True)[0]
+        random = self.topp < 0
+        self.topp = abs(self.topp)
 
+        selected_indices = (cumulative_probs <= self.topp).nonzero(as_tuple=True)[0]
+        
         # Include one more index to ensure the sum exceeds the threshold
-        if selected_indices.numel() < sorted_indices.numel():
-            selected_indices = sorted_indices[:selected_indices.numel() + 1]
+        num_local_tokens = selected_indices.numel() + (selected_indices.numel() < sorted_indices.numel())
+
+        if random:
+            random_indices = torch.randperm(len(sorted_indices))[:num_local_tokens]
+            selected_indices = sorted_indices[random_indices]
+        else:
+            selected_indices = sorted_indices[:num_local_tokens]
 
         selected_indices, _ = selected_indices.sort(descending=False)
         

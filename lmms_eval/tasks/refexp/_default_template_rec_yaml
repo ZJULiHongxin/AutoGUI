@@ -39,3 +39,5 @@ model_specific_process_kwargs:
     scale: 1000
   monkey:
     scale: 1000
+  slime:
+    scale: 100
