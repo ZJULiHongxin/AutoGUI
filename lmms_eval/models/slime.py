@@ -43,7 +43,7 @@ class SLIME(lmms):
     def __init__(
         self,
         pretrained: str = 'yifanzhang114/SliME-vicuna-7B',
-        revision: str = "main",
+        model_base: str = "",
         device: str = "cuda",
         dtype: Optional[Union[str, torch.dtype]] = "auto",
         batch_size: int = 1,
@@ -71,7 +71,7 @@ class SLIME(lmms):
 
         model_name = get_model_name_from_path(pretrained)
 
-        self._tokenizer, self._model, self._image_processor, context_len = load_pretrained_model(pretrained, None, model_name, use_flash_attn=True, topp=topp)
+        self._tokenizer, self._model, self._image_processor, context_len = load_pretrained_model(pretrained, model_base, model_name, use_flash_attn=True, topp=topp)
 
         self._config = self._model.config
         self.batch_size_per_gpu = int(batch_size)
