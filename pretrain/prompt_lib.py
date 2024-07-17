@@ -215,13 +215,21 @@ def get_paligemma_prompt(output_box):
         
     return prompt
 
+def get_default_prompt(output_box):
+    prompt = random.choice(web_loca_all_point_prompt)
+    if output_box: prompt = prompt.replace("with point", "with bbox")
+    
+    return prompt
+
 def apply_vlm_template(task_instruction, model_name, output_box=False):
     model_name = model_name.lower()
     if 'llava' in model_name:
         # Llava-1.6 Example: "[INST] <image>\nIn this UI screenshot, what is the position of the element corresponding to the command "{}"? [/INST]"
         prompt = get_llava_prompt(is_v16='1.6' in model_name, output_box=output_box)
     elif 'slime' in model_name:
-        prompt = get_qwenvl_prompt(output_box=True) # get_llava_prompt(is_v16=False, add_special_tokens=False, output_box=output_box)
+        prompt = get_default_prompt(output_box)
+        elem_desc = ' This element is used for "{}"' if not task_instruction.startswith("This element") else ' {}'
+        prompt = prompt + elem_desc
     elif 'deepseek' in model_name:
         # DeepSeek-vl Example: '<image_placeholder>In this UI screenshot, what is the position of the element corresponding to the command "{question}"?'
         prompt = get_deepseek_prompt(output_box=output_box)
@@ -241,6 +249,8 @@ def apply_vlm_template(task_instruction, model_name, output_box=False):
         # SeeClick Example: "In this UI screenshot, what is the position of the element corresponding to the command \"{}\" (with bbox)?"
         prompt = get_paligemma_prompt(output_box=output_box)
     else:
-        prompt = get_seeclick_prompt(output_box=output_box)
+        prompt = get_default_prompt(output_box)
+        elem_desc = ' This element is used for "{}"' if not task_instruction.startswith("This element") else ' {}'
+        prompt = prompt + elem_desc
 
     return prompt.format(task_instruction)

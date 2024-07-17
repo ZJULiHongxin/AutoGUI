@@ -40,6 +40,9 @@ class GatedBlock(nn.Module):
         super().__init__()
         self.target_sequence_length = 576
         grid_size = int(math.sqrt(self.target_sequence_length))
+        
+        self.gated_only_mlp = config.mm_projector_type == 'gated_only_mlp'
+
         self.attn = Resampler(
             grid_size=grid_size,
             embed_dim = config.mm_hidden_size,
@@ -47,7 +50,7 @@ class GatedBlock(nn.Module):
             kv_dim=config.mm_hidden_size,
             llm_hidden_size=config.hidden_size,
             use_post_proj=False,
-        )
+        ) if not self.gated_only_mlp else nn.Identity()
     
         
         modules = [nn.Linear(config.mm_hidden_size, config.hidden_size)]
@@ -71,6 +74,13 @@ class GatedBlock(nn.Module):
         
         self.learnable_gated = config.mm_learnable_gated
         self.k = 2
+        
+        if self.learnable_gated == -1:
+            print("Train both the MLP and QFormer projectors in the MoE")
+        elif self.learnable_gated == 0:
+            print("Train only the MLP projector in the MoE")
+        elif self.learnable_gated == 1:
+            print("Train only the QFormer projector in the MoE")
         # self.apply(self._init_weights)
         
     def _prob_in_top_k(self, clean_values, noisy_values, noise_stddev, noisy_top_values):
@@ -177,6 +187,7 @@ class GatedBlock(nn.Module):
                 nn.init.constant_(m.bias, 0)
     
     def forward(self, x, text_embedding=None, attn_mask=None):
+        # x: 576 x 1024
         if x.shape[0] != self.target_sequence_length and x.shape[1] != self.target_sequence_length:
             return self.projection(x)
         
@@ -191,6 +202,8 @@ class GatedBlock(nn.Module):
         expert_outputs = [self.projection(x)]
     
         for i in range(1, self.num_experts):
+            if self.gated_only_mlp: continue
+
             expert_output = self.expert_ffn[i](x)
             expert_output = self.projection(expert_output)
             expert_outputs.append(expert_output)
@@ -235,7 +248,7 @@ def build_vision_projector(config, delay_load=False, **kwargs):
             llm_hidden_size=config.hidden_size,
         )
         return resampler
-    elif projector_type == 'gated':
+    elif 'gated' in projector_type:
         return GatedBlock(config)
 
     mlp_gelu_match = re.match(r'^mlp(\d+)x_gelu$', projector_type)

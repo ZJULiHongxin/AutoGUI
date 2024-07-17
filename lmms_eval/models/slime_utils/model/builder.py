@@ -53,6 +53,10 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
             from llava.model.language_model.llava_llama import LlavaConfig
             lora_cfg_pretrained = LlavaConfig.from_pretrained(model_path)
             tokenizer = AutoTokenizer.from_pretrained(model_base, use_fast=False)
+            model_config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
+            
+            if topp is not None:
+                model_config.mm_resampler_topp = topp
             print('Loading LLaVA from base model...')
             model = LlavaLlamaForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True, config=lora_cfg_pretrained, **kwargs)
             token_num, tokem_dim = model.lm_head.out_features, model.lm_head.in_features
@@ -102,7 +106,7 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
             else:
                 tokenizer = AutoTokenizer.from_pretrained(model_base, use_fast=False)
                 cfg_pretrained = AutoConfig.from_pretrained(model_path)
-                model = LlavaLlamaForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True, config=cfg_pretrained, **kwargs)
+                model = LlavaLlamaForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True, config=cfg_pretrained, **kwargs)
 
             mm_projector_weights = torch.load(os.path.join(model_path, 'mm_projector.bin'), map_location='cpu')
             mm_projector_weights = {k: v.to(torch.float16) for k, v in mm_projector_weights.items()}
@@ -120,14 +124,8 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
                 )
             else:
                 tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
-                model_config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
-                
-                if topp is not None:
-                    model_config.mm_resampler_topp = topp
- 
                 model = LlavaLlamaForCausalLM.from_pretrained(
                     model_path,
-                    config=model_config,
                     low_cpu_mem_usage=True,
                     **kwargs
                 )
