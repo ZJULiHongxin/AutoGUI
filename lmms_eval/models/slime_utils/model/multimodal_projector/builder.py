@@ -187,11 +187,7 @@ class GatedBlock(nn.Module):
                 nn.init.constant_(m.bias, 0)
     
     def forward(self, x, text_embedding=None, attn_mask=None):
-<<<<<<< HEAD
-        # x: 
-=======
         # x: 576 x 1024
->>>>>>> 0c9452ff2f6eac7c2524e4541dd02ae361cbc611
         if x.shape[0] != self.target_sequence_length and x.shape[1] != self.target_sequence_length:
             return self.projection(x)
         
