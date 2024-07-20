@@ -10,7 +10,7 @@ import pdb
 import torch
 from torch import nn
 from torch.nn import functional as F
-from torch.nn.init import trunc_normal_
+from torch.nn.init import trunc_normal_, normal_
 
 class IdentityMap(nn.Module):
     def __init__(self, hiiden, **kwargs):
@@ -118,6 +118,8 @@ class Resampler(nn.Module):
 
         self.query = nn.Parameter(torch.zeros(self.num_queries, embed_dim), requires_grad=True)
         trunc_normal_(self.query, std=.02)
+        # self.query = torch.clamp(self.query, min=-2, max=2)
+        # trunc_normal_(self.query, std=.02)
 
 
         if kv_dim is not None and kv_dim != embed_dim:

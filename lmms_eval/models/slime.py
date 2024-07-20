@@ -42,7 +42,7 @@ class SLIME(lmms):
 
     def __init__(
         self,
-        pretrained: str = 'yifanzhang114/SliME-vicuna-7B',
+        pretrained: str = 'yifanzhang114/SliME-Llama3-8B',
         model_base: Optional[str] = None,
         device: str = "cuda",
         dtype: Optional[Union[str, torch.dtype]] = "auto",

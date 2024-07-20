@@ -225,6 +225,8 @@ class TextGuidedSampler(nn.Module):
         super().__init__()
         self.num_queries = config.mm_resampler_dim
         self.topp = config.mm_resampler_topp
+        
+        print(f"TextGuided topp: {self.topp:.2f}")
         self.temp = config.mm_resampler_temp
         self.grid_size = int(math.sqrt(self.num_queries))
         if projector_type == 'cosine':
@@ -265,12 +267,11 @@ class TextGuidedSampler(nn.Module):
         # Find the indices where the cumulative sum exceeds the threshold
         random = self.topp < 0
         self.topp = abs(self.topp)
-
         selected_indices = (cumulative_probs <= self.topp).nonzero(as_tuple=True)[0]
-        
+
         # Include one more index to ensure the sum exceeds the threshold
         num_local_tokens = selected_indices.numel() + (selected_indices.numel() < sorted_indices.numel())
-
+ 
         if random:
             random_indices = torch.randperm(len(sorted_indices))[:num_local_tokens]
             selected_indices = sorted_indices[random_indices]

@@ -20,15 +20,15 @@ import copy
 from dataclasses import dataclass, field
 import json
 import logging
-import pathlib
 from typing import Dict, Optional, Sequence, List, Tuple
 # os.environ['CUDA_VISIBLE_DEVICES']='7'
-
+from colorama import Fore, Style
 import torch
-
+from peft import LoraConfig, get_peft_model
+from transformers import TrainerCallback
 import transformers
 import tokenizers
-
+from tqdm import tqdm
 from llava.constants import IGNORE_INDEX, IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
 from torch.utils.data import Dataset
 from llava.train.llava_trainer import LLaVATrainer
@@ -36,7 +36,7 @@ from llava.train.llava_trainer import LLaVATrainer
 from llava import conversation as conversation_lib
 from llava.model import *
 from llava.mm_utils import tokenizer_image_token, process_anyres_image
-from slime_utils.process_image import process_image_naive, process_image_any_res
+from llava.process_image import process_image_naive, process_image_any_res
 
 from PIL import Image
 from transformers.models.mixtral.modeling_mixtral import MixtralSparseMoeBlock
@@ -165,6 +165,20 @@ class TrainingArguments(transformers.TrainingArguments):
         },
     )
 
+def is_serializable(obj):
+    try:
+        json.dumps(obj)
+        return True
+    except (TypeError, OverflowError):
+        return False
+
+def clean_dict(data):
+    if isinstance(data, dict):
+        return {k: clean_dict(v) for k, v in data.items() if is_serializable(v)}
+    elif isinstance(data, list):
+        return [clean_dict(item) for item in data if is_serializable(item)]
+    else:
+        return data if is_serializable(data) else None
 
 def maybe_zero_3(param, ignore_status=False, name=None):
     from deepspeed import zero
@@ -479,6 +493,10 @@ def preprocess_llama3(
             target[cur_len : cur_len + instruction_len] = IGNORE_INDEX
             # print(target)
             cur_len += round_len
+
+        # Debug: 
+        # print(tokenizer.decode(target.where(target != -100, torch.tensor(0))))
+        # print(tokenizer.decode(input_ids[0].where(input_ids[0] != -200, torch.tensor(10))))
         target[cur_len:] = IGNORE_INDEX
         if cur_len < tokenizer.model_max_length:
             if cur_len != total_len:
@@ -536,11 +554,12 @@ def preprocess_v1(
     # Mask targets
     sep = conv.sep + conv.roles[1] + ": "
     for conversation, target in zip(conversations, targets):
+        # Target是将<image>替换成-200后的序列
         total_len = int(target.ne(tokenizer.pad_token_id).sum())
 
         rounds = conversation.split(conv.sep2)
         cur_len = 1
-        target[:cur_len] = IGNORE_INDEX
+        target[:cur_len] = IGNORE_INDEX # 第一个token是<|begin_of_text|>需要跳过
         for i, rou in enumerate(rounds):
             if rou == "":
                 break
@@ -564,7 +583,8 @@ def preprocess_v1(
                 round_len = len(tokenizer(rou).input_ids)
                 instruction_len = len(tokenizer(parts[0]).input_ids) - 2
 
-            if i != 0 and not tokenizer.legacy and IS_TOKENIZER_GREATER_THAN_0_14:
+            # if i != 0 and not tokenizer.legacy and IS_TOKENIZER_GREATER_THAN_0_14:
+            if i != 0 and IS_TOKENIZER_GREATER_THAN_0_14:
                 round_len -= 1
                 instruction_len -= 1
 
@@ -573,6 +593,10 @@ def preprocess_v1(
             cur_len += round_len
         target[cur_len:] = IGNORE_INDEX
 
+        # Debug: 
+        # print(tokenizer.decode(target.where(target != -100, torch.tensor(0))))
+        # print(tokenizer.decode(input_ids[0].where(input_ids[0] != -200, torch.tensor(10))))
+        
         if cur_len < tokenizer.model_max_length:
             if cur_len != total_len:
                 target[:] = IGNORE_INDEX
@@ -774,21 +798,35 @@ class LazySupervisedDataset(Dataset):
 
         if data_path == 'pretrain':
             dataset_paths = [
-                'playground/data/blip_laion_cc_sbu_558k.json',
+                '/mnt/nvme0n1p1/hongxin_li/UI_training_data/LLaVA-Pretrain/blip_laion_cc_sbu_558k.json',
+            ]
+        elif data_path == 'finetune':
+            dataset_paths = [
+                'data/sharegpt4v_mix665k_cap23k_coco-ap9k_lcs3k_sam9k_div2k.json',
+                'data/SMR.json',
             ]
         else:
-            dataset_paths = [
-                'playground/data/sharegpt4v_mix665k_cap23k_coco-ap9k_lcs3k_sam9k_div2k.json',
-                'playground/data/SMR.json',
-            ]
-        
+            dataset_paths = [data_path]
+
         dataset_sizes = []
         for dataset_path in dataset_paths:
             data = json.load(open(dataset_path, "r"))
             self.list_data_dict.extend(data)
             dataset_sizes.append(len(data))
     
-        assert sum(dataset_sizes) == len(self.list_data_dict)
+        # Clean data
+        # ocrvqa_6320: 3631 tokens
+        # clean_data = []
+        # for sample in tqdm(self.list_data_dict, desc="Cleaning data"):
+        #     # if sample['id'] in ['ocrvqa_6320']: del sample
+        #     token_lens = sum(len(tokenizer.encode(x['value'])) for x in sample['conversations'])
+        #     if token_lens <= tokenizer.model_max_length:
+        #         clean_data.append(sample)
+        
+        # print(f"remove {len(self.list_data_dict) - len(clean_data)} samples")
+        # self.list_data_dict = clean_data
+        
+        # assert sum(dataset_sizes) == len(self.list_data_dict)
         
         sampling_probs = [np.sqrt(size) / np.sqrt(len(self.list_data_dict)) for size in dataset_sizes]
         self.sampling_probs = []
@@ -843,6 +881,8 @@ class LazySupervisedDataset(Dataset):
                         return result
                 image = expand2square(image, tuple(int(x*255) for x in processor.image_mean))
                 image = processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
+            elif self.data_args.image_aspect_ratio == 'resize336':
+                image = process_anyres_image(image.resize((336,336)), processor, self.data_args.image_grid_pinpoints)
             elif self.data_args.image_aspect_ratio == 'anyres':
                 image = process_anyres_image(image, processor, self.data_args.image_grid_pinpoints)
             else:
@@ -857,6 +897,7 @@ class LazySupervisedDataset(Dataset):
             self.tokenizer,
             has_image=('image' in self.list_data_dict[i]))
         if isinstance(i, int):
+            # debug: print(self.tokenizer.decode(data_dict["input_ids"][0].where(data_dict["input_ids"][0] != -200, torch.tensor(0))))
             data_dict = dict(input_ids=data_dict["input_ids"][0],
                              labels=data_dict["labels"][0],
                              weight=torch.tensor(weight))
@@ -971,6 +1012,9 @@ def train(attn_implementation="flash_attention_2"):
             )
         ))
 
+    config = transformers.AutoConfig.from_pretrained(model_args.model_name_or_path, trust_remote_code=True)
+    config.mm_resampler_topp = model_args.mm_resampler_topp
+
     if model_args.vision_tower is not None:
         if 'mpt' in model_args.model_name_or_path:
             config = transformers.AutoConfig.from_pretrained(model_args.model_name_or_path, trust_remote_code=True)
@@ -1002,6 +1046,7 @@ def train(attn_implementation="flash_attention_2"):
         else:
             model = LlavaLlamaForCausalLM.from_pretrained(
                 model_args.model_name_or_path,
+                config=config,
                 cache_dir=training_args.cache_dir,
                 attn_implementation=attn_implementation,
                 torch_dtype=(torch.bfloat16 if training_args.bf16 else None),
@@ -1010,13 +1055,15 @@ def train(attn_implementation="flash_attention_2"):
     else:
         model = transformers.LlamaForCausalLM.from_pretrained(
             model_args.model_name_or_path,
+            config=config,
             cache_dir=training_args.cache_dir,
             attn_implementation=attn_implementation,
             torch_dtype=(torch.bfloat16 if training_args.bf16 else None),
             **bnb_model_from_pretrained_args
         )
-    model.config.use_cache = False
 
+    model.config.use_cache = False
+    
     if model_args.freeze_backbone:
         model.model.requires_grad_(False)
 
@@ -1034,7 +1081,6 @@ def train(attn_implementation="flash_attention_2"):
             model.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
 
     if training_args.lora_enable:
-        from peft import LoraConfig, get_peft_model
         lora_config = LoraConfig(
             r=training_args.lora_r,
             lora_alpha=training_args.lora_alpha,
@@ -1120,7 +1166,7 @@ def train(attn_implementation="flash_attention_2"):
             if not model_args.use_global_only:
                 for p in model.get_model().sampler.parameters():
                     p.requires_grad = True
-            if model_args.mm_projector_type == 'gated' and model_args.mm_learnable_gated > -1:
+            if 'gated' in model_args.mm_projector_type and model_args.mm_learnable_gated > -1:
                 for i, module in enumerate(model.get_model().mm_projector.expert_ffn):
                     if i != model_args.mm_learnable_gated:
                         for p in module.parameters():
@@ -1172,10 +1218,47 @@ def train(attn_implementation="flash_attention_2"):
         rank0_print(tokenizer.decode(ex_input_ids_0, skip_special_tokens=False))
         rank0_print("=" * 20)
     
+    # Print trainable parameters
+    all_params = sum(p.ds_numel if hasattr(p, 'ds_numel') else p.numel() for p in model.parameters())
+    all_trainable = sum(p.ds_numel if hasattr(p, 'ds_numel') else p.numel() for p in model.model.parameters() if p.requires_grad)
+
+    trainable_params_info = f"Total: {all_params}, Trainable, {all_trainable} | Percentage: {all_trainable / all_params*100:.2f}%"
+    rank0_print(Fore.YELLOW + trainable_params_info + Fore.RESET)
+    
+    # Save the exp config
+    if local_rank == 0:
+        exp_config = {
+            'model_args': clean_dict(model_args.__dict__),
+            'data_args': clean_dict(data_args.__dict__),
+            'training_args': clean_dict(training_args.__dict__),
+            'trainable_params_info': trainable_params_info,
+            'num_gpus': torch.cuda.device_count()
+        }
+        os.makedirs(training_args.output_dir, exist_ok=True)
+        with open(os.path.join(training_args.output_dir, 'exp_config.json'), 'w') as f:
+            json.dump(exp_config, f, indent=2)
+
+    class SaveCallback(TrainerCallback):
+        def on_save(self, args, state, control, **kwargs):
+            checkpoint_dir = os.path.join(args.output_dir, 'checkpoint-{}'.format(state.global_step))
+            if args.lora_enable:
+                state_dict = get_peft_state_maybe_zero_3(
+                    model.named_parameters(), training_args.lora_bias
+                )
+                non_lora_state_dict = get_peft_state_non_lora_maybe_zero_3(
+                    model.named_parameters()
+                )
+                if training_args.local_rank in [0,-1]:
+                    model.config.save_pretrained(checkpoint_dir)
+                    model.save_pretrained(checkpoint_dir, state_dict=state_dict)
+
+                    torch.save(non_lora_state_dict, os.path.join(checkpoint_dir, 'non_lora_trainables.bin'))
+
     trainer = LLaVATrainer(model=model,
                     tokenizer=tokenizer,
                     image_token_len=image_token_len,
                     args=training_args,
+                    callbacks=[SaveCallback()] if training_args.lora_enable else None,
                     **data_module)
     trainer.train()
     trainer.save_state()

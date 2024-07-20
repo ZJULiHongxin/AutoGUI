@@ -244,7 +244,8 @@ class LlavaMetaForCausalLM(ABC):
                         local_image_features[image_idx] = image_feature
                 else:
                     assert NotImplementedError
-
+                
+                # 经过上面post_qformer attn-pool以及mm_projector映射后，这里利用相似度筛选local token
                 local_image_features = [self.get_model().sampler(local_image_features[i], text_embedding=text_input_embeds[i], attn_mask=text_input_mask[i]) for i in range(len(local_image_features))] 
             if use_global_only:
                 image_features = [global_image_features[i].unsqueeze(0) for i in range(len(image_features))]

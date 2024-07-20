@@ -125,8 +125,8 @@
                 "--main_process_port=14349",
                 "-m", "lmms_eval",
                 "--model", "slime", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
-                "--model_args", "pretrained=/home/jingran_su/.cache/huggingface/hub/SliME-Llama3-8B,device_map=auto",
-                "--tasks", "func_pred_rec, screenspot_rec, motif, vwb, refexp", // func_pred_rec, screenspot_rec, motif, vwb, refexp
+                "--model_args", "pretrained=/mnt/nvme0n1p1/hongxin_li/highres_autogui/checkpoints/SliME-Llama-3-8B-baseline/checkpoint-3696,device_map=auto",
+                "--tasks", "func_pred_rec, screenspot_rec", // func_pred_rec, screenspot_rec, motif, vwb, refexp
                 "--batch_size", "1",
                 "--log_samples",
                 "--log_samples_suffix", "test",
@@ -135,7 +135,7 @@
                 // "--verbosity", "DEBUG"
                 ],
                 "env": {
-                    "CUDA_VISIBLE_DEVICES": "0",
+                    "CUDA_VISIBLE_DEVICES": "0,1,2,3",
                 },
         }
     ]
