@@ -19,7 +19,7 @@ import torch
 import torch.nn as nn
 
 from transformers import AutoConfig, AutoModelForCausalLM, \
-                         LlamaConfig, LlamaModel, LlamaForCausalLM
+                         GemmaConfig, GemmaModel, GemmaForCausalLM
 
 from transformers.modeling_outputs import CausalLMOutputWithPast
 from transformers.generation.utils import GenerateOutput
@@ -27,23 +27,24 @@ from transformers.generation.utils import GenerateOutput
 from ..llava_arch import LlavaMetaModel, LlavaMetaForCausalLM
 
 
-class LlavaConfig(LlamaConfig):
-    model_type = "llava_llama"
+class LlavaGemmaConfig(GemmaConfig):
+    model_type = "llava_gemma"
+    pretraining_tp = 1
 
 
-class LlavaLlamaModel(LlavaMetaModel, LlamaModel):
-    config_class = LlavaConfig
+class LlavaGemmaModel(LlavaMetaModel, GemmaModel):
+    config_class = LlavaGemmaConfig
 
-    def __init__(self, config: LlamaConfig):
-        super(LlavaLlamaModel, self).__init__(config)
+    def __init__(self, config: GemmaConfig):
+        super(LlavaGemmaModel, self).__init__(config)
 
 
-class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
-    config_class = LlavaConfig
+class LlavaGemmaForCausalLM(GemmaForCausalLM, LlavaMetaForCausalLM):
+    config_class = LlavaGemmaConfig
 
     def __init__(self, config):
-        super(LlamaForCausalLM, self).__init__(config)
-        self.model = LlavaLlamaModel(config)
+        super(GemmaForCausalLM, self).__init__(config)
+        self.model = LlavaGemmaModel(config)
         self.pretraining_tp = config.pretraining_tp
         self.vocab_size = config.vocab_size
         self.lm_head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
@@ -69,7 +70,7 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
         images_mask: Optional[torch.Tensor] = None,
         image_sizes: Optional[List[List[int]]] = None,
         return_dict: Optional[bool] = None,
-        **kwargs,
+        **kwargs
     ) -> Union[Tuple, CausalLMOutputWithPast]:
 
         if inputs_embeds is None:
@@ -157,5 +158,5 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
             inputs['image_sizes'] = image_sizes
         return inputs
 
-AutoConfig.register("llava_llama", LlavaConfig)
-AutoModelForCausalLM.register(LlavaConfig, LlavaLlamaForCausalLM)
+AutoConfig.register("llava_gemma", LlavaGemmaConfig)
+AutoModelForCausalLM.register(LlavaGemmaConfig, LlavaGemmaForCausalLM)
