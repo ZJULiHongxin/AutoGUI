@@ -173,7 +173,46 @@ class Resampler(nn.Module):
 
     def _repeat(self, query, N: int):
         return query.unsqueeze(1).repeat(1, N, 1)
-    
+
+class Merger(nn.Module):
+    """
+    InternLM
+    """
+
+    def __init__(
+            self,
+            grid_size,
+            embed_dim,
+            llm_hidden_size=4096
+    ):
+        super().__init__()
+        self.patch_size = int((576 / grid_size ** 2) ** 0.5)
+        self.grid_size = grid_size
+        self.embed_dim = embed_dim
+        self.llm_hidden_size = llm_hidden_size
+        modules = [nn.Linear(embed_dim * self.patch_size * self.patch_size, embed_dim)]
+        self.projection = nn.Sequential(*modules)
+
+    def forward(self, x):
+        # x: B x 576 (#tokens) x 1024
+        if len(x.shape) <= 2:
+            x = x.unsqueeze(0)
+            mark=True
+        else:
+            mark=False
+        
+        B, NUM_PATCHES, DIM = x.shape
+        num_patches = int(NUM_PATCHES ** 0.5)
+        
+        x = x.reshape(B, num_patches, num_patches, DIM).unfold(1, self.patch_size, 2).unfold(2, self.patch_size, 2) # B x num_patches_H x num_patches_W x DIM x 2 x 2
+
+        x = self.projection(x.reshape(B, -1, DIM * self.patch_size * self.patch_size))
+
+        return x if not mark else x.squeeze()
+
+    def _repeat(self, query, N: int):
+        return query.unsqueeze(1).repeat(1, N, 1)
+     
 class ResamplerWithText(nn.Module):
     """
     A 2D perceiver-resampler network with one cross attention layers by
