@@ -33,8 +33,8 @@ from peft import PeftModel, LoraModel, LoraConfig
 from typing import Any, Dict, Optional, Tuple, Union
 from deepspeed import DeepSpeedEngine
 
-from llava.model import *
-from llava.constants import (
+from slime_utils.model import *
+from slime_utils.constants import (
     IGNORE_INDEX,
     IMAGE_TOKEN_INDEX,
     DEFAULT_IMAGE_TOKEN,
