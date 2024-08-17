@@ -263,15 +263,12 @@ class TextGuidedSampler(nn.Module):
         cumulative_probs = torch.cumsum(sorted_probs, dim=0)
 
         # Find the indices where the cumulative sum exceeds the threshold
-        random = self.topp < 0
-        self.topp = abs(self.topp)
-
-        selected_indices = (cumulative_probs <= self.topp).nonzero(as_tuple=True)[0]
+        selected_indices = (cumulative_probs <= abs(self.topp)).nonzero(as_tuple=True)[0]
         
         # Include one more index to ensure the sum exceeds the threshold
         num_local_tokens = selected_indices.numel() + (selected_indices.numel() < sorted_indices.numel())
 
-        if random:
+        if self.topp < 0:
             random_indices = torch.randperm(len(sorted_indices))[:num_local_tokens]
             selected_indices = sorted_indices[random_indices]
         else:

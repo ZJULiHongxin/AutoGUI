@@ -42,8 +42,8 @@ class SLIME(lmms):
 
     def __init__(
         self,
-        pretrained: str = 'yifanzhang114/SliME-vicuna-7B',
-        revision: str = "main",
+        pretrained: str = 'yifanzhang114/SliME-Llama3-8B',
+        model_base: Optional[str] = None,
         device: str = "cuda",
         dtype: Optional[Union[str, torch.dtype]] = "auto",
         batch_size: int = 1,
@@ -71,7 +71,7 @@ class SLIME(lmms):
 
         model_name = get_model_name_from_path(pretrained)
 
-        self._tokenizer, self._model, self._image_processor, context_len = load_pretrained_model(pretrained, None, model_name, use_flash_attn=True, topp=topp)
+        self._tokenizer, self._model, self._image_processor, context_len = load_pretrained_model(pretrained, model_base, model_name, use_flash_attn=True, topp=topp)
 
         self._config = self._model.config
         self.batch_size_per_gpu = int(batch_size)
@@ -112,6 +112,8 @@ class SLIME(lmms):
             self.conv_mode = 'llama3'
         elif 'vicuna' in pretrained.lower():
             self.conv_mode = 'vicuna_v1'
+        elif 'gemma' in pretrained.lower():
+            self.conv_mode = 'gemma'
 
     @property
     def config(self):
@@ -236,7 +238,7 @@ class SLIME(lmms):
 
             gen_kwargs["image_sizes"] = [visuals[idx].size for idx in range(len(visuals))]
             if "max_new_tokens" not in gen_kwargs:
-                gen_kwargs["max_new_tokens"] = 1024
+                gen_kwargs["max_new_tokens"] = 8
             if "temperature" not in gen_kwargs:
                 gen_kwargs["temperature"] = 0
             if "top_p" not in gen_kwargs:
