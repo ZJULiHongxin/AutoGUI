@@ -10,10 +10,10 @@ class SeparatorStyle(Enum):
     """Different separator style."""
     SINGLE = auto()
     TWO = auto()
-    MPT = auto()
     PLAIN = auto()
     LLAMA_2 = auto()
     LLAMA_3 = auto()
+    GEMMA = auto()
 
 
 @dataclasses.dataclass
@@ -62,15 +62,6 @@ class Conversation:
                     ret += role + ": " + message + seps[i % 2]
                 else:
                     ret += role + ":"
-        elif self.sep_style == SeparatorStyle.MPT:
-            ret = self.system + self.sep
-            for role, message in messages:
-                if message:
-                    if type(message) is tuple:
-                        message, _, _ = message
-                    ret += role + message + self.sep
-                else:
-                    ret += role
         elif self.sep_style == SeparatorStyle.LLAMA_2:
             wrap_sys = lambda msg: f"<<SYS>>\n{msg}\n<</SYS>>\n\n" if len(msg) > 0 else msg
             wrap_inst = lambda msg: f"[INST] {msg} [/INST]"
@@ -109,6 +100,21 @@ class Conversation:
                     else:
                         ret += f'<|start_header_id|>{self.roles[i%2]}<|end_header_id|>\n\n{message}<|eot_id|>' + self.sep2
             ret = ret.lstrip(self.sep)
+        elif self.sep_style == SeparatorStyle.GEMMA:
+            ret = ""
+
+            for i, (role, message) in enumerate(messages):
+                if i == 0:
+                    # assert message, "first message should not be none"
+                    assert role == self.roles[0], "first message should come from user"
+
+                if i % 2 == 0:
+                    ret += f'<start_of_turn>{self.roles[i%2]}\n{message}<end_of_turn>\n'
+                else:
+                    if message is None:
+                        ret += f'<start_of_turn>{self.roles[i%2]}\n'
+                    else:
+                        ret += f'<start_of_turn>{self.roles[i%2]}\n{message}<end_of_turn>\n' + self.sep2
         elif self.sep_style == SeparatorStyle.PLAIN:
             seps = [self.sep, self.sep2]
             ret = self.system
@@ -272,16 +278,6 @@ conv_llava_llama_2 = Conversation(
     sep2="</s>",
 )
 
-conv_mpt = Conversation(
-    system="""<|im_start|>system
-A conversation between a user and an LLM-based AI assistant. The assistant gives helpful and honest answers.""",
-    roles=("<|im_start|>user\n", "<|im_start|>assistant\n"),
-    version="mpt",
-    messages=(),
-    offset=0,
-    sep_style=SeparatorStyle.MPT,
-    sep="<|im_end|>",
-)
 
 conv_llava_plain = Conversation(
     system="",
@@ -354,17 +350,6 @@ conv_mistral_instruct = Conversation(
     sep2="</s>",
 )
 
-conv_chatml_direct = Conversation(
-    system="""<|im_start|>system
-Answer the questions.""",
-    roles=("<|im_start|>user\n", "<|im_start|>assistant\n"),
-    version="mpt",
-    messages=(),
-    offset=0,
-    sep_style=SeparatorStyle.MPT,
-    sep="<|im_end|>",
-)
-
 conv_llama_3 = Conversation(
     system="",
     roles=("user", "assistant"),
@@ -376,6 +361,16 @@ conv_llama_3 = Conversation(
     sep2="<|eot_conversation|>",
 )
 
+conv_gemma = Conversation(
+    system="",
+    roles=("user", "model"),
+    version="gemma",
+    messages=(),
+    offset=0,
+    sep_style=SeparatorStyle.GEMMA,
+    sep="",
+    sep2="<|eot_conversation|>"
+)
 
 conv_llama_2 = Conversation(
     system="""You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe.  Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.
@@ -413,9 +408,7 @@ conv_templates = {
     "llama_2": conv_llama_2,
     "llama3": conv_llama_3,
     "mistral_instruct": conv_mistral_instruct,
-    "chatml_direct": conv_chatml_direct,
-    "mistral_direct": conv_chatml_direct,
-
+    "gemma": conv_gemma,
     "plain": conv_llava_plain,
     "v0_plain": conv_llava_plain,
     "llava_v0": conv_llava_v0,
@@ -423,8 +416,6 @@ conv_templates = {
     "llava_v1": conv_llava_v1,
     "v1_mmtag": conv_llava_v1_mmtag,
     "llava_llama_2": conv_llava_llama_2,
-
-    "mpt": conv_mpt,
 }
 
 

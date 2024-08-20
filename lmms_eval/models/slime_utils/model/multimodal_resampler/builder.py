@@ -4,7 +4,7 @@ from torch.nn.init import trunc_normal_
 import numpy as np
 import math
 from torch.nn import functional as F
-from slime_utils.model.multimodal_resampler.sampler import Resampler, ResamplerWithText
+from slime_utils.model.multimodal_resampler.sampler import Resampler, Merger
 
 def get_1d_sincos_pos_embed_from_grid(embed_dim, pos):
     """
@@ -225,6 +225,8 @@ class TextGuidedSampler(nn.Module):
         super().__init__()
         self.num_queries = config.mm_resampler_dim
         self.topp = config.mm_resampler_topp
+        self.projector_type = projector_type
+        print(f"TextGuided topp: {self.topp:.2f}")
         self.temp = config.mm_resampler_temp
         self.grid_size = int(math.sqrt(self.num_queries))
         if projector_type == 'cosine':
@@ -236,17 +238,28 @@ class TextGuidedSampler(nn.Module):
                     num_heads=config.hidden_size // 128,
                     temp=self.temp
                 )
-        self.post_qformer = Resampler(
+        else:
+            self.selector = None
+        
+        if projector_type == 'merger':
+            self.post_qformer = Merger(
                         grid_size=self.grid_size,
                         embed_dim = config.mm_hidden_size,
-                        num_heads = config.mm_hidden_size // 128,
-                        kv_dim=config.mm_hidden_size,
                         llm_hidden_size=config.hidden_size,
                     )
+        else:
+            self.post_qformer = Resampler(
+                            grid_size=self.grid_size,
+                            embed_dim = config.mm_hidden_size,
+                            num_heads = config.mm_hidden_size // 128,
+                            kv_dim=config.mm_hidden_size,
+                            llm_hidden_size=config.hidden_size,
+                        )
         
         
     def forward(self, local_f, text_embedding, attn_mask=None):
-        
+        if self.selector is None: return local_f
+
         local_probs = self.selector(local_f, text_embedding, attn_mask)
         local_probs = softmax_with_temperature(local_probs, temperature=0.5)
                 
@@ -263,12 +276,14 @@ class TextGuidedSampler(nn.Module):
         cumulative_probs = torch.cumsum(sorted_probs, dim=0)
 
         # Find the indices where the cumulative sum exceeds the threshold
-        selected_indices = (cumulative_probs <= abs(self.topp)).nonzero(as_tuple=True)[0]
-        
+        random = self.topp < 0
+        self.topp = abs(self.topp)
+        selected_indices = (cumulative_probs <= self.topp).nonzero(as_tuple=True)[0]
+
         # Include one more index to ensure the sum exceeds the threshold
         num_local_tokens = selected_indices.numel() + (selected_indices.numel() < sorted_indices.numel())
-
-        if self.topp < 0:
+ 
+        if random:
             random_indices = torch.randperm(len(sorted_indices))[:num_local_tokens]
             selected_indices = sorted_indices[random_indices]
         else:

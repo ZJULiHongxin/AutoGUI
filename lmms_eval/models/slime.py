@@ -253,7 +253,7 @@ class SLIME(lmms):
             # the n_dims of img_tensor must be 5 (including the bs dimention); otherwise, the text-guided sampler will not work.
             img_tensor = process_images(visuals, self._image_processor, self._model.config).to(dtype=self.model.dtype, device=self.model.device)
             
-            input_ids = tokenizer_image_token(prompt, self.tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0)
+            input_ids = tokenizer_image_token(prompt, self.tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).to(device=self.model.device)
 
             try:
                 cont = self.model.generate(

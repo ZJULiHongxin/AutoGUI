@@ -104,6 +104,8 @@ class LlavaMetaModel:
             for p in self.sampler.parameters():
                 p.requires_grad = True
 
+        print(f"Use {mm_resampler_type} resampler to process local patch tokens" if self.has_sampler else "Use identity mapping to process local patch tokens")
+
         if pretrain_mm_mlp_adapter is not None:
             mm_projector_weights = torch.load(pretrain_mm_mlp_adapter, map_location='cpu')
             def get_w(weights, keyword):
@@ -111,7 +113,7 @@ class LlavaMetaModel:
 
             self.mm_projector.load_state_dict(get_w(mm_projector_weights, 'mm_projector'), strict=False)
 
-        if pretrain_mm_re_sampler is not None:
+        if self.has_sampler and pretrain_mm_re_sampler is not None:
             mm_resampler_weights = torch.load(pretrain_mm_re_sampler, map_location='cpu')
             def get_w(weights, keyword):
                 return {k.split(keyword + '.')[1]: v for k, v in weights.items() if keyword in k}
@@ -210,7 +212,6 @@ class LlavaMetaForCausalLM(ABC):
         return new_input_embeds, new_input_mask
         
     def encode_images(self, images, input_ids=None, split_sizes=None, attention_mask=None, images_mask=None, image_sizes=None, labels=None):
-
         mm_patch_merge_type = getattr(self.config, 'mm_patch_merge_type', 'flat')
         use_local_only = getattr(self.config, 'use_local_only', False)
         use_global_only = getattr(self.config, 'use_global_only', False)
@@ -224,6 +225,7 @@ class LlavaMetaForCausalLM(ABC):
                 global_image_features = [self.get_model().mm_projector(imgs[0]) for imgs in image_features]
             if not use_global_only:
                 local_image_features = [self.get_model().sampler.post_qformer(imgs[1:]) for imgs in image_features]
+                
                 local_image_features = [self.get_model().mm_projector(imgs) for imgs in local_image_features]
                 if images_mask is not None and images_mask[0].size(0) - 1 == local_image_features[0].size(0):
                     for i, (mask, feature) in enumerate(zip(images_mask, local_image_features)):
@@ -244,7 +246,8 @@ class LlavaMetaForCausalLM(ABC):
                         local_image_features[image_idx] = image_feature
                 else:
                     assert NotImplementedError
-
+                
+                # 经过上面post_qformer attn-pool以及mm_projector映射后，这里利用相似度筛选local token
                 local_image_features = [self.get_model().sampler(local_image_features[i], text_embedding=text_input_embeds[i], attn_mask=text_input_mask[i]) for i in range(len(local_image_features))] 
             if use_global_only:
                 image_features = [global_image_features[i].unsqueeze(0) for i in range(len(image_features))]

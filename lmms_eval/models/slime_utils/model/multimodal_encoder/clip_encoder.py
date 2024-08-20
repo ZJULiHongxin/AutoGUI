@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+from colorama import Fore, Style
 from transformers import CLIPVisionModel, CLIPImageProcessor, CLIPVisionConfig
 from transformers import PreTrainedModel
 
@@ -32,6 +32,8 @@ class CLIPVisionTower(nn.Module):
         self.vision_tower.requires_grad_(False)
 
         self.is_loaded = True
+        
+        print(Fore.YELLOW + f"Load ViT from {self.vision_tower_name} (patch: {self.vision_tower.config.patch_size} |img_size: {self.vision_tower.config.image_size})" + Style.RESET_ALL)
 
     def feature_select(self, image_forward_outs):
         image_features = image_forward_outs.hidden_states[self.select_layer]

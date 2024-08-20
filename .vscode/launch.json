@@ -5,6 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0",
+            },
+        },
+        {
             "name": "eval-seeclick",
             "type": "debugpy",
             "request": "launch",
@@ -122,11 +132,11 @@
             "args": [
                 "--num_processes=1",
                 // "--gpu_ids", "0",
-                "--main_process_port=14349",
+                "--main_process_port=16349",
                 "-m", "lmms_eval",
                 "--model", "slime", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
-                "--model_args", "pretrained=/home/jingran_su/.cache/huggingface/hub/SliME-Llama3-8B,device_map=auto",
-                "--tasks", "func_pred_rec, screenspot_rec, motif, vwb, refexp", // func_pred_rec, screenspot_rec, motif, vwb, refexp
+                "--model_args", "pretrained=/mnt/nvme0n1p1/hongxin_li/highres_autogui/checkpoints/0723_SliME-Gemma-2B-full_SMR-ShareGPT4V_GeneralFirst/checkpoint-2772,device_map=auto",
+                "--tasks", "func_pred_rec,screenspot_rec", // func_pred_rec, screenspot_rec, motif, vwb, refexp
                 "--batch_size", "1",
                 "--log_samples",
                 "--log_samples_suffix", "test",
@@ -135,7 +145,7 @@
                 // "--verbosity", "DEBUG"
                 ],
                 "env": {
-                    "CUDA_VISIBLE_DEVICES": "0",
+                    "CUDA_VISIBLE_DEVICES": "0,1,2,3",
                 },
         }
     ]

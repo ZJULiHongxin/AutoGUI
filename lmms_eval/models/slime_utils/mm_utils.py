@@ -244,6 +244,12 @@ def process_images(images, image_processor, model_cfg):
             image = [image_processor.preprocess(img, return_tensors='pt')['pixel_values'][0] for img in image]
             image = torch.stack(image)
             new_images.append(image)
+    elif image_aspect_ratio == 'resize336':
+        for image in images:
+            image = process_image_naive(image, tuple(int(x*255) for x in image_processor.image_mean))
+            image = [image_processor.preprocess(img, return_tensors='pt')['pixel_values'][0] for img in image]
+            image = torch.stack(image)
+            new_images.append(image)
     elif image_aspect_ratio == "any_res":
         for image in images:
             image = process_image_any_res(image, tuple(int(x*255) for x in image_processor.image_mean))
