@@ -1,8 +1,8 @@
 import math
 import torch.nn as nn
 import re
-from slime_utils.model.multimodal_resampler.sampler import Resampler, ResamplerWithText
-from slime_utils.model.multimodal_projector.moe import SparseDispatcher
+from llava.model.multimodal_resampler.sampler import Resampler, ResamplerWithText
+from llava.model.multimodal_projector.moe import SparseDispatcher
 import torch
 from torch.nn.init import trunc_normal_
 import torch.nn.functional as F
@@ -34,13 +34,15 @@ class SimpleResBlock(nn.Module):
         x = self.pre_norm(x)
         return x + self.proj(x)
 
+        
 class GatedBlock(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.target_sequence_length = 576
         grid_size = int(math.sqrt(self.target_sequence_length))
         
-        self.gated_only_mlp = config.mm_projector_type in ['gated_only_mlp' 'mlp']
+        self.gated_only_mlp = config.mm_projector_type == 'gated_only_mlp'
+        self.gated_only_qformer = config.mm_projector_type == 'gated_only_qformer'
 
         modules = [nn.Linear(config.mm_hidden_size, config.hidden_size)]
         for _ in range(1, 2):
@@ -49,7 +51,7 @@ class GatedBlock(nn.Module):
         self.projection = nn.Sequential(*modules)
 
         self.expert_ffn = [self.projection]
-        if ',' in config.mm_projector_type:
+        if ',' in config.mm_projector_type: # mm_projector_type = "mlp,mlp"
             proj_types = config.mm_projector_type.split(',')
             assert proj_types[0] == 'mlp', f"Wrong mm_projector_type: {config.mm_projector_type}. The 1st projector must be 'mlp'"
             for proj_type in proj_types[1:]:
@@ -57,7 +59,7 @@ class GatedBlock(nn.Module):
                     proj = nn.Sequential(
                         nn.Linear(config.mm_hidden_size, config.hidden_size), nn.GELU(),
                         nn.Linear(config.hidden_size, config.hidden_size)
-                    )
+                        )
                 elif proj_type == 'qformer':
                     proj = Resampler(
                         grid_size=grid_size,
@@ -79,9 +81,8 @@ class GatedBlock(nn.Module):
                 use_post_proj=False,
             ) if not self.gated_only_mlp else nn.Identity()
 
-            # Mixture of Experts
             self.expert_ffn = [self.projection, self.attn]
-
+        
         self.num_experts = len(self.expert_ffn)
         
         self.w_gate = nn.Parameter(torch.zeros(config.mm_hidden_size, self.num_experts, dtype=torch.bfloat16), requires_grad=True)
@@ -176,6 +177,7 @@ class GatedBlock(nn.Module):
             load: a Tensor with shape [num_experts]
         """
         clean_logits = x @ self.w_gate.to(x.dtype)
+        # print(self.w_gate.mean())
         if self.training:
             raw_noise_stddev = x @ self.w_gate
             noise_stddev = ((self.softplus(raw_noise_stddev) + noise_epsilon))
@@ -219,7 +221,7 @@ class GatedBlock(nn.Module):
 
         N, C, D = x.shape
 
-        expert_outputs = [self.projection(x)]
+        expert_outputs = [self.projection(x)] if not self.gated_only_qformer and self.learnable_gated in [0, -1] else [None]
     
         for i in range(1, self.num_experts):
             if self.gated_only_mlp: continue
@@ -272,6 +274,8 @@ def build_vision_projector(config, delay_load=False, **kwargs):
         )
         return resampler
     #elif 'gated' in projector_type:
+    elif projector_type == 'identity':
+        return IdentityMap()
     else:
         return GatedBlock(config)
 
@@ -283,8 +287,5 @@ def build_vision_projector(config, delay_load=False, **kwargs):
             modules.append(nn.GELU())
             modules.append(nn.Linear(config.hidden_size, config.hidden_size))
         return nn.Sequential(*modules)
-
-    if projector_type == 'identity':
-        return IdentityMap()
 
     raise ValueError(f'Unknown projector type: {projector_type}')
