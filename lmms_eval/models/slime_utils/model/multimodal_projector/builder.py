@@ -98,7 +98,7 @@ class GatedBlock(nn.Module):
         self.k = 2
         
         if self.learnable_gated == -1:
-            print("Train both the MLP and QFormer projectors in the MoE")
+            print("Train all {} projectors in the MoE".format(', '.join([str(type(x)) for x in self.expert_ffn])))
         else:
             print(f"Train only the {self.learnable_gated}th {str(self.expert_ffn)} projector in the MoE")
 

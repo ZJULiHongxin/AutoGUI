@@ -254,3 +254,5 @@ def apply_vlm_template(task_instruction, model_name, output_box=False):
         prompt = prompt + elem_desc
 
     return prompt.format(task_instruction)
+
+FUNC_CAP_PROMPT = "Describe the function of the element at {} on the screen."
