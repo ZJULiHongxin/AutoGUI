@@ -165,3 +165,4 @@ pretrain/eval_results/
 eval_results/
 /logs
 .vscode/launch.json
+autogui_ckpt

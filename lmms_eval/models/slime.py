@@ -20,7 +20,7 @@ from slime_utils.mm_utils import tokenizer_image_token, process_images, get_mode
 from torch.utils.data import Dataset, DataLoader
 
 from PIL import Image
-import math
+from colorama import Fore, Style
 
 @register_model("slime")
 class SLIME(lmms):
@@ -71,6 +71,7 @@ class SLIME(lmms):
 
         model_name = get_model_name_from_path(pretrained)
 
+        print(f"Loading model from {pretrained}")
         self._tokenizer, self._model, self._image_processor, context_len = load_pretrained_model(pretrained, model_base, model_name, use_flash_attn=True, topp=topp)
 
         self._config = self._model.config
@@ -273,9 +274,11 @@ class SLIME(lmms):
             text_outputs = self.tokenizer.batch_decode(cont, skip_special_tokens=True)[0]
 
             if (hasattr(self, "accelerator") and self.accelerator.is_main_process or not hasattr(self, "accelerator") is None) and doc_id[0] % 5 == 0:
-                print(f"Generated text for doc ID {doc_id[0]}:\nprompt: {context}\nresponse:{text_outputs}\n")
+                print(f"Generated text for doc ID {doc_id[0]}:")
+                print(Fore.CYAN + f"prompt: {context}")
+                print(Fore.YELLOW + f"response:{text_outputs}\n" + Style.RESET_ALL)
 
-            res.append({'prompt':text_outputs, 'response':text_outputs})
+            res.append({'prompt':context, 'response':text_outputs})
             self.cache_hook.add_partial("generate_until", (context, gen_kwargs), text_outputs)
             pbar.update(1)
         # reorder this group of results back to original unsorted form
