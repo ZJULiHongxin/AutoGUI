@@ -10,6 +10,8 @@ import pandas as pd
 from enum import Enum
 from tqdm import tqdm
 import ast
+import sys
+sys.path.append('/'.join(__file__.split('/')[:-4]))
 from pretrain.prompt_lib import web_loca_all_point_prompt, apply_vlm_template
 from pretrain.process_utils import pred_2_point
 
@@ -110,7 +112,10 @@ def motif_preprocess_dataset(dataset: datasets.Dataset):
 
 def motif_doc_to_visual(doc):
     # load from bytes
-    img = Image.open(io.BytesIO(doc['image']['bytes']))
+    if not isinstance(doc['image'], Image.Image):
+        img = Image.open(io.BytesIO(doc['image']['bytes']))
+    else: img = doc['image']
+
     return [img]
 
 def motif_doc_to_target(doc):

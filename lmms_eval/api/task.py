@@ -722,8 +722,9 @@ class ConfigurableTask(Task):
                     download_mode= datasets.DownloadMode.FORCE_REDOWNLOAD if force_download else datasets.DownloadMode.REUSE_DATASET_IF_EXISTS,
                     **dataset_kwargs if dataset_kwargs is not None else {},
                 )
-            except:
+            except Exception as e:
                 print("cannot load by `datasets.load_dataset`!")
+                print(e)
 
         if self.config.process_docs is not None:
             for split in self.dataset:
