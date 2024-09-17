@@ -60,7 +60,7 @@ class Qwen2_VL(lmms):
         except:
             self._tokenizer = AutoTokenizer.from_pretrained('Qwen/Qwen2-VL-7B-Instruct', trust_remote_code=trust_remote_code)
 
-        self.processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-7B-Instruct")
+        self.processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-7B-Instruct", min_pixels=256*28*28, max_pixels=1344*28*28)
 
         self._config = self._model.config
         # self.model.tie_weights()
