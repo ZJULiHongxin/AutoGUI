@@ -8,6 +8,7 @@ dataset_kwargs:
 generation_kwargs:
   until:
     - "<|start_header_id|>assistant"
+  max_new_tokens: 32
 process_results: !function utils_rec.func_gnd_process_result
 metric_list:
   - metric: Center_ACC
@@ -37,6 +38,8 @@ model_specific_process_kwargs:
     scale: 100
   qwen_vl_chat:
     scale: 1000
+  qwen2_vl:
+    scale: 1
   monkey:
     scale: 1000
   slime:

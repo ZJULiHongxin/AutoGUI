@@ -4,7 +4,7 @@ from torch.nn.init import trunc_normal_
 import numpy as np
 import math
 from torch.nn import functional as F
-from slime_utils.model.multimodal_resampler.sampler import Resampler, Merger
+from slime_utils.model.multimodal_resampler.sampler import Resampler, Merger, ResamplerWithText, MplugDocOwlHReducerModel
 
 def get_1d_sincos_pos_embed_from_grid(embed_dim, pos):
     """
@@ -222,6 +222,7 @@ class SpatialMap(nn.Module):
 class TextGuidedSampler(nn.Module):
 
     def __init__(self, projector_type, config):
+        # projector_type is mm_resampler_type
         super().__init__()
         self.num_queries = config.mm_resampler_dim
         self.topp = config.mm_resampler_topp
@@ -230,7 +231,7 @@ class TextGuidedSampler(nn.Module):
         self.temp = config.mm_resampler_temp
         self.grid_size = int(math.sqrt(self.num_queries))
         if projector_type == 'cosine':
-            self.selector = TextGuidedRouterCosine(pad_token_id=config.pad_token_id, temp=self.temp, embed_dim = config.hidden_size,)
+            self.selector = TextGuidedRouterCosine(pad_token_id=config.pad_token_id, temp=self.temp, embed_dim = config.hidden_size)
         elif projector_type == 'qformer':
             self.selector = TextGuidedRouterAttention(
                     grid_size=1, # patch tokens H*W
@@ -247,6 +248,18 @@ class TextGuidedSampler(nn.Module):
                         embed_dim = config.mm_hidden_size,
                         llm_hidden_size=config.hidden_size,
                     )
+        elif projector_type == 'instructblip':
+            self.post_qformer = ResamplerWithText(
+                        grid_size=self.grid_size,
+                        embed_dim = config.mm_hidden_size,
+                        num_heads = config.mm_hidden_size // 128,
+                        kv_dim=config.mm_hidden_size,
+                        llm_hidden_size=config.hidden_size,
+                    )
+        elif projector_type == 'h-reducer':
+            self.post_qformer = MplugDocOwlHReducerModel(
+                        embed_dim = config.mm_hidden_size
+                    )
         else:
             self.post_qformer = Resampler(
                             grid_size=self.grid_size,
@@ -255,9 +268,10 @@ class TextGuidedSampler(nn.Module):
                             kv_dim=config.mm_hidden_size,
                             llm_hidden_size=config.hidden_size,
                         )
-        
+            
         
     def forward(self, local_f, text_embedding, attn_mask=None):
+        
         if self.selector is None: return local_f
 
         local_probs = self.selector(local_f, text_embedding, attn_mask)
@@ -270,24 +284,17 @@ class TextGuidedSampler(nn.Module):
 
         local_probs = softmax_with_temperature(local_probs, temperature=self.temp)
         # Sort the probabilities in descending order and get the corresponding indices
-        sorted_probs, sorted_indices = torch.sort(local_probs, descending=True) # sorted_indices: a vector without Batch Size dim
+        sorted_probs, sorted_indices = torch.sort(local_probs, descending=True)
 
         # Calculate the cumulative sum of probabilities
         cumulative_probs = torch.cumsum(sorted_probs, dim=0)
 
         # Find the indices where the cumulative sum exceeds the threshold
-        random = self.topp < 0
-        self.topp = abs(self.topp)
         selected_indices = (cumulative_probs <= self.topp).nonzero(as_tuple=True)[0]
 
         # Include one more index to ensure the sum exceeds the threshold
-        num_local_tokens = selected_indices.numel() + (selected_indices.numel() < sorted_indices.numel())
- 
-        if random:
-            random_indices = torch.randperm(len(sorted_indices))[:num_local_tokens]
-            selected_indices = sorted_indices[random_indices]
-        else:
-            selected_indices = sorted_indices[:num_local_tokens]
+        if selected_indices.numel() < sorted_indices.numel():
+            selected_indices = sorted_indices[:selected_indices.numel() + 1]
 
         selected_indices, _ = selected_indices.sort(descending=False)
         

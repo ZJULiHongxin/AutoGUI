@@ -1,8 +1,7 @@
 import math
 import torch.nn as nn
 import re
-from llava.model.multimodal_resampler.sampler import Resampler, ResamplerWithText
-from llava.model.multimodal_projector.moe import SparseDispatcher
+from slime_utils.model.multimodal_resampler.sampler import Resampler, ResamplerWithText
 import torch
 from torch.nn.init import trunc_normal_
 import torch.nn.functional as F
@@ -34,7 +33,6 @@ class SimpleResBlock(nn.Module):
         x = self.pre_norm(x)
         return x + self.proj(x)
 
-        
 class GatedBlock(nn.Module):
     def __init__(self, config):
         super().__init__()
@@ -51,7 +49,7 @@ class GatedBlock(nn.Module):
         self.projection = nn.Sequential(*modules)
 
         self.expert_ffn = [self.projection]
-        if ',' in config.mm_projector_type: # mm_projector_type = "mlp,mlp"
+        if ',' in config.mm_projector_type:
             proj_types = config.mm_projector_type.split(',')
             assert proj_types[0] == 'mlp', f"Wrong mm_projector_type: {config.mm_projector_type}. The 1st projector must be 'mlp'"
             for proj_type in proj_types[1:]:
@@ -59,7 +57,7 @@ class GatedBlock(nn.Module):
                     proj = nn.Sequential(
                         nn.Linear(config.mm_hidden_size, config.hidden_size), nn.GELU(),
                         nn.Linear(config.hidden_size, config.hidden_size)
-                        )
+                    )
                 elif proj_type == 'qformer':
                     proj = Resampler(
                         grid_size=grid_size,
@@ -70,8 +68,8 @@ class GatedBlock(nn.Module):
                         use_post_proj=False,
                     )
                 self.expert_ffn.append(proj)
-            self.expert_ffn = nn.ModuleList(self.expert_ffn)
-        else:
+            
+        elif not self.gated_only_mlp:
             self.attn = Resampler(
                 grid_size=grid_size,
                 embed_dim = config.mm_hidden_size,
@@ -79,10 +77,11 @@ class GatedBlock(nn.Module):
                 kv_dim=config.mm_hidden_size,
                 llm_hidden_size=config.hidden_size,
                 use_post_proj=False,
-            ) if not self.gated_only_mlp else nn.Identity()
+            )
 
             self.expert_ffn = [self.projection, self.attn]
-        
+        else:
+            self.expert_ffn = [self.projection]
         self.num_experts = len(self.expert_ffn)
         
         self.w_gate = nn.Parameter(torch.zeros(config.mm_hidden_size, self.num_experts, dtype=torch.bfloat16), requires_grad=True)
@@ -98,7 +97,7 @@ class GatedBlock(nn.Module):
         self.k = 2
         
         if self.learnable_gated == -1:
-            print("Train all {} projectors in the MoE".format(', '.join([str(type(x)) for x in self.expert_ffn])))
+            print("Train both the MLP and QFormer projectors in the MoE")
         else:
             print(f"Train only the {self.learnable_gated}th {str(self.expert_ffn)} projector in the MoE")
 
@@ -209,7 +208,7 @@ class GatedBlock(nn.Module):
                 nn.init.constant_(m.bias, 0)
     
     def forward(self, x, text_embedding=None, attn_mask=None):
-        # x: 
+        # MoE只对global image有用
         if x.shape[0] != self.target_sequence_length and x.shape[1] != self.target_sequence_length:
             return self.projection(x)
         
@@ -221,7 +220,7 @@ class GatedBlock(nn.Module):
 
         N, C, D = x.shape
 
-        expert_outputs = [self.projection(x)] if not self.gated_only_qformer and self.learnable_gated in [0, -1] else [None]
+        expert_outputs = [self.projection(x)] if not self.gated_only_qformer else [None]
     
         for i in range(1, self.num_experts):
             if self.gated_only_mlp: continue

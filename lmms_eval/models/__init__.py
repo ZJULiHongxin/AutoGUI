@@ -7,6 +7,7 @@ AVAILABLE_MODELS = {
     "llava_sglang": "LlavaSglang",
     "qwen_vl": "Qwen_VL",
     "qwen_vl_chat": "Qwen_VL_Chat",
+    "qwen2_vl": "Qwen2_VL",
     "fuyu": "Fuyu",
     "gpt4v": "GPT4V",
     "instructblip": "InstructBLIP",

@@ -38,6 +38,8 @@ model_specific_prompt_kwargs:
     format: seeclick
     post_prompt: |
       In the UI, where should I click if I want to complete instruction "{goal_info}" (with point)?
+  qwen2_vl:
+    format: random
   qwen_vl_chat:
     format: qwen_vl_chat
     post_prompt: |
@@ -53,6 +55,8 @@ model_specific_process_kwargs:
     scale: 100
   qwen_vl_chat:
     scale: 1000
+  qwen2_vl:
+    scale: 1
   monkey:
     scale: 1000
   slime:

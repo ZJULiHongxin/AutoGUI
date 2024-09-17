@@ -21,9 +21,9 @@ import torch.nn as nn
 from .multimodal_encoder.builder import build_vision_tower
 from .multimodal_projector.builder import build_vision_projector
 from .multimodal_resampler.builder import build_vision_sampler
-from ..constants import IGNORE_INDEX, IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_PATCH_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
+from slime_utils.constants import IGNORE_INDEX, IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_PATCH_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN, GEMMA_PATCH_POS
 
-from ..mm_utils import get_anyres_image_grid_shape
+from slime_utils.mm_utils import get_anyres_image_grid_shape
 
 class LlavaMetaModel:
 
@@ -161,6 +161,25 @@ class LlavaMetaForCausalLM(ABC):
     def get_vision_tower(self):
         return self.get_model().get_vision_tower()
 
+    @property
+    def comma_index(self):
+        return [235269]
+    
+    @property
+    def linebreak_index(self):
+        return [108]
+
+    @property
+    def global_indicator(self):
+        return torch.tensor([235322, 6335, 235298, 3030, 235313]) # '<global_img>'
+
+    @property
+    def local_index(self):
+        return [5047, 235292]
+
+    def get_patch_indicator(self, rowcol: str):
+        return GEMMA_PATCH_POS[rowcol]
+
     def get_pure_text_embedding(self, input_ids, attention_mask=None, labels=None):
         if attention_mask is None:
             attention_mask = torch.ones_like(input_ids)
@@ -219,21 +238,59 @@ class LlavaMetaForCausalLM(ABC):
             images = torch.split(images, split_sizes, dim=0)
             seperater = self.get_model().embed_tokens(torch.tensor(self.config.seperator, dtype=input_ids.dtype, device=input_ids.device))
             # seperater = self.get_model().embed_tokens(torch.tensor(1919, dtype=input_ids.dtype, device=input_ids.device))
-            text_input_embeds, text_input_mask = self.get_pure_text_embedding(input_ids, attention_mask, labels)
-            image_features = [self.get_model().get_vision_tower()(imgs) for imgs in images]
+            text_input_embeds, text_input_mask = self.get_pure_text_embedding(input_ids, attention_mask, labels) # emb: B x L x 2048    |    mask: B x L
+            image_features = [self.get_model().get_vision_tower()(imgs) for imgs in images] # 336 -> 576 (tokens) x 1024 (dims); 672 -> 2304 (tokens) x 1024 (dim)
+            
+            compressor = self.get_model().sampler.post_qformer
             if not use_local_only:
-                global_image_features = [self.get_model().mm_projector(imgs[0]) for imgs in image_features]
+                if compressor.module_type == 'h-reducer':
+                    batched_global_images = torch.stack([imgs[0] for imgs in image_features])
+                    global_image_features = self.get_model().sampler.post_qformer(batched_global_images)
+                    global_image_features = self.get_model().mm_projector(global_image_features)
+                    
+                    global_image_features = [x.squeeze(1) for x in torch.split(global_image_features, [1 for _ in range(global_image_features.shape[1])], dim=1)]
+                    
+                    if mm_patch_merge_type == 'flat_indicator':
+                        global_image_features = [torch.cat([
+                            self.get_model().embed_tokens(self.global_indicator.to(x.device)), x]) for x in global_image_features]
+                else:
+                    global_image_features = [self.get_model().mm_projector(imgs[0]) for imgs in image_features] # 576 x 2048
+
             if not use_global_only:
-                local_image_features = [self.get_model().sampler.post_qformer(imgs[1:]) for imgs in image_features]
+                if compressor.module_type == 'resampler':
+                    local_image_features = [compressor(imgs[1:]) for imgs in image_features] # #patches x 576 x 1024 -> #patches x 144 x 1024
+
+                elif compressor.module_type == 'instructblip':
+                    local_image_features = [compressor(image_features[i][1:], text=text_input_embeds[i:i+1], attn_mask=text_input_mask[i:i+1]) for i in range(len(image_features))]
                 
+                elif compressor.module_type == 'h-reducer':
+                    local_image_features = [compressor(imgs[1:]) for imgs in image_features] # #patches x 576 x 1024 -> #patches x 144 x 1024
+
                 local_image_features = [self.get_model().mm_projector(imgs) for imgs in local_image_features]
+                
                 if images_mask is not None and images_mask[0].size(0) - 1 == local_image_features[0].size(0):
                     for i, (mask, feature) in enumerate(zip(images_mask, local_image_features)):
                         selected_indices = torch.nonzero(mask[1:]).squeeze(1)
                         local_image_features[i] = torch.index_select(feature, 0, selected_indices)
                         
                 if mm_patch_merge_type == 'flat':
-                    local_image_features = [x.flatten(0, 1) for x in local_image_features]
+                    local_image_features = [x.permute(1,0,2).flatten(0,1) for x in local_image_features] # permute so that the 1st dim denotes #patches
+                elif mm_patch_merge_type == 'flat_indicator':
+                    new_local_image_features = []
+                    for image_idx, image_feature in enumerate(local_image_features):
+                        num_patch_width, num_patch_height = get_anyres_image_grid_shape(image_sizes[image_idx], self.config.image_grid_pinpoints, self.get_vision_tower().config.image_size)
+
+                        image_feature = image_feature.view(num_patch_height, num_patch_width, -1, image_feature.shape[-1])
+                        
+                        imgs_with_indicators = []
+                        for row in range(num_patch_height):
+                            for col in range(num_patch_width):
+                                imgs_with_indicators.append(self.get_model().embed_tokens(self.get_patch_indicator(f"{row+1}{col+1}").to(image_feature.device)))
+                                imgs_with_indicators.append(image_feature[row,col])
+                        new_local_image_features.append(torch.cat(imgs_with_indicators))
+
+                    local_image_features = new_local_image_features
+
                 elif mm_patch_merge_type == 'spatial':
                     for image_idx, image_feature in enumerate(local_image_features):
                         if 0 in image_feature.shape:
@@ -241,14 +298,16 @@ class LlavaMetaForCausalLM(ABC):
                             continue
                         num_patch_width, num_patch_height = get_anyres_image_grid_shape(image_sizes[image_idx], self.config.image_grid_pinpoints, self.get_vision_tower().config.image_size)
                         image_feature = image_feature.view(num_patch_height, num_patch_width, self.get_model().sampler.grid_size, self.get_model().sampler.grid_size, -1)
-                        image_feature = image_feature.permute(0, 2, 1, 3, 4).contiguous()
-                        image_feature = image_feature.flatten(0, 3)
+                        image_feature = image_feature.permute(0, 2, 1, 3, 4).contiguous() # num_patch_height x num_patch_width x 12 x 12 x 2048 -> num_patch_height x 12 x num_patch_width x 12 x 2048
+                        image_feature = image_feature.flatten(0, 3) # 
                         local_image_features[image_idx] = image_feature
                 else:
                     assert NotImplementedError
                 
                 # 经过上面post_qformer attn-pool以及mm_projector映射后，这里利用相似度筛选local token
-                local_image_features = [self.get_model().sampler(local_image_features[i], text_embedding=text_input_embeds[i], attn_mask=text_input_mask[i]) for i in range(len(local_image_features))] 
+                if mm_patch_merge_type != 'flat_indicator':
+                    local_image_features = [self.get_model().sampler(local_image_features[i], text_embedding=text_input_embeds[i], attn_mask=text_input_mask[i]) for i in range(len(local_image_features))] 
+            
             if use_global_only:
                 image_features = [global_image_features[i].unsqueeze(0) for i in range(len(image_features))]
             elif use_local_only:
@@ -263,7 +322,7 @@ class LlavaMetaForCausalLM(ABC):
             image_features = [self.get_model().mm_projector(imgs) for imgs in image_features]
         else:
             image_features = self.get_model().get_vision_tower()(images)
-            if self.config.mm_projector_type == 'gated':
+            if 'gated' in self.config.mm_projector_type:
                 text_input_embeds, text_input_mask = self.get_pure_text_embedding(input_ids, attention_mask, labels)
                 image_features = self.get_model().mm_projector(image_features, text_embedding=text_input_embeds, attn_mask=text_input_mask)
             else:
@@ -293,7 +352,7 @@ class LlavaMetaForCausalLM(ABC):
             mm_patch_merge_type = getattr(self.config, 'mm_patch_merge_type', 'flat')
             image_aspect_ratio = getattr(self.config, 'image_aspect_ratio', 'square')
 
-            if mm_patch_merge_type == 'flat':
+            if mm_patch_merge_type.startswith('flat'):
                 image_features = [x.flatten(0, 1) for x in image_features]
             elif mm_patch_merge_type.startswith('spatial'):
                 new_image_features = []
@@ -334,8 +393,7 @@ class LlavaMetaForCausalLM(ABC):
                             ), dim=0)
                     new_image_features.append(image_feature)
                 image_features = new_image_features
-            else:
-                raise ValueError(f"Unexpected mm_patch_merge_type: {self.config.mm_patch_merge_type}")
+
         else:
             image_features, _ = self.encode_images(images, input_ids=input_ids, attention_mask=attention_mask, labels=labels)
 
@@ -465,8 +523,8 @@ class LlavaMetaForCausalLM(ABC):
         if model_args.mm_use_im_patch_token:
             tokenizer.add_tokens([DEFAULT_IMAGE_PATCH_TOKEN], special_tokens=True)
             self.resize_token_embeddings(len(tokenizer))
-
         if model_args.mm_use_im_start_end:
+
             num_new_tokens = tokenizer.add_tokens([DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN], special_tokens=True)
             self.resize_token_embeddings(len(tokenizer))
 
