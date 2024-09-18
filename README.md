@@ -17,15 +17,9 @@ Existing UI annotation methods typically collect data from static UIs, focusing 
 
 Here, we are thrilled to unveil **AutoGUI**, a groundbreaking and scalable UI annotation pipeline. AutoGUI can autonomously annotate the contextual functionalities of diverse UI elements at scale, entirely eliminating the need for human experts. This innovation not only accelerates the data collection process but also enhances the depth and accuracy of UI functionality descriptions, opening a new path in the field of UI annotation.
 
-<p align="center">
-<img src="assets/autogui_pipeline.png" width="100%">
-<br>
-<b>Illustration of AutoGUI Pipeline</b>
-</p>
+**AutoGUI** initiates by collecting interaction trajectories on Common Crawl websites. Each trajectory step captures all interactable elements and the accessibility tree (AXTree) that briefly outlines the UI structure. The content changes in the AXTrees before and after interaction will be used by an open-source LLM (e.g., Llama-3-70B) to predict functionality annotations of the interacted elements.
 
-**AutoGUI** initiates by collecting interaction trajectories on Commom Crawl websites. Each trajectory step captures all interactable elements and the accessibility tree (AXTree) that briefly outlines the UI structure. The content changes in the AXTrees before and after interaction will be used by an opensource LLM (e.g., Llama-3-70B) to predict functionality annotations of the interacted elements.
-
-This annotation process provides rich funtional semantics in the generated annotations, thereby allowing for curating a GUI dataset that can be potentially enhance the GUI understanding capabilities of GUI agents.
+This annotation process provides rich functional semantics in the generated annotations, thereby allowing for curating a GUI dataset that can potentially enhance the GUI understanding capabilities of GUI agents.
 
 ## Installation
 You can install the AutoGUI package by cloning the repository and running the following command:
@@ -74,7 +68,7 @@ We also curate a 2k split used for evaluating the functionality grounding capabi
 
 Download this test split on [*Google Drive*](https://drive.google.com/file/d/1VfhVtcN1B4WSrb4DXJczQQ5zx1_pOvBu/view?usp=sharing).
 
-Each test sample contain: 
+Each test sample contains: 
 * `image`: the GUI screenshot.
 * `func`: the functionality annotation of a target element on the screenshot.
 * `point`: the center point (X,Y) of the target element. Note that the coordinates are normalized with the range 0-100.
@@ -88,7 +82,7 @@ Each test sample contain:
 
 After downloading [the tar-format data](https://huggingface.co/datasets/WebAgent/AutoGUI-v1-zip), please generate a json file that records all samples with the absolute image paths required by the Qwen-VL model.
 
-For example, the `conversations` field must starts with a user message that looks like `"<img>path/to/autogui_625k/1_web.png</img>\n (instruction)"`
+For example, the `conversations` field must start with a user message that looks like `"<img>path/to/autogui_625k/1_web.png</img>\n (instruction)"`
 
 2. Finetuning [Qwen-VL-Chat](https://huggingface.co/Qwen/Qwen-VL-Chat)
 
@@ -96,7 +90,7 @@ Set the `data_path` in `finetune/finetune_autogui_lora.sh` and then run it.
 
 
 ### Evaluation code
-Our evalaution code is adapted from lmms-eval. To evaluate a model on a specific UI grounding benchmark, run this command:
+Our evaluation code is adapted from lmms-eval. To evaluate a model on a specific UI grounding benchmark, run this command:
 
 ```
 python3 -m accelerate.commands.launch
