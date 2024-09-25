@@ -42,7 +42,7 @@ else:
     best_fit_attn_implementation = "eager"
 
 
-@register_model("llava")
+@register_model("llava_model")
 class Llava(lmms):
     """
     Llava Model

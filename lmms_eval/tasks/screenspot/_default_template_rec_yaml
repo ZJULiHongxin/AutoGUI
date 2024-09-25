@@ -42,6 +42,10 @@ model_specific_prompt_kwargs:
     format: qwen_vl_chat
     post_prompt: |
       What are the bounding box coordinates of the element corresponding to the command "{goal_info}" in this UI screenshot?
+  slime:
+    format: qwen_vl_chat
+    post_prompt: |
+      What are the bounding box coordinates of the element corresponding to the command "{goal_info}" in this UI screenshot?
   cogagent_chat_hf:
     format: cogagent_chat_hf
     pre_prompt: |

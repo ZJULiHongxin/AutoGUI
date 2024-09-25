@@ -114,7 +114,10 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
         else:
             if 'gemma' in model_name.lower():
                 tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=True)
-                model = LlavaGemmaForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True, **kwargs)
+                if any(k in model_name.lower() for k in ['gemma-2', 'gemma2']):
+                    model = LlavaGemma2ForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True, **kwargs)
+                else:
+                    model = LlavaGemmaForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True, **kwargs)
             elif 'mistral' in model_name.lower():
                 tokenizer = AutoTokenizer.from_pretrained(model_path)
                 model = LlavaMistralForCausalLM.from_pretrained(

@@ -300,6 +300,11 @@ class AutoGUI(lmms):
                     # for seq2seq case where self.tok_decode(self.eot_token_id) = ''
                     text_outputs = text_outputs.split(term)[0]
 
+            if (hasattr(self, "accelerator") and self.accelerator.is_main_process or not hasattr(self, "accelerator") is None) and doc_id[0] % 5 == 0:
+                print(f"Generated text for doc ID {doc_id[0]}:")
+                print(Fore.CYAN + f"prompt: {context}")
+                print(Fore.YELLOW + f"response:{text_outputs}\n" + Style.RESET_ALL)
+
             res.append({"prompt": context, "response": text_outputs.strip()})
 
             self.cache_hook.add_partial("generate_until", (context, gen_kwargs), text_outputs)

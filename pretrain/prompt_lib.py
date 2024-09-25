@@ -48,7 +48,7 @@ LLAVA15_START, LLAVA15_END = "USER: ", "\nASSISTANT:"
 LLAVA_IMAGE_PLACEHOLDER = "<image>"
 
 # Llava-1.6 Example: "[INST] <image>\nIn this UI screenshot, what is the position of the element corresponding to the command "{}"? [/INST]"
-def get_llava_prompt(is_v16, add_special_tokens=True, output_box=False):
+def get_llava_prompt(is_v16, add_special_tokens=True, output_box=True):
     prompt = BOX_PROMPT if output_box else POSITION_PROMPT
     
     if add_special_tokens:
@@ -225,7 +225,7 @@ def apply_vlm_template(task_instruction, model_name, output_box=False):
     model_name = model_name.lower()
     if 'llava' in model_name:
         # Llava-1.6 Example: "[INST] <image>\nIn this UI screenshot, what is the position of the element corresponding to the command "{}"? [/INST]"
-        prompt = get_llava_prompt(is_v16='1.6' in model_name, output_box=output_box)
+        prompt = get_llava_prompt(is_v16='1.6' in model_name)
     elif 'autogui_plus' in model_name:
         prompt = get_default_prompt(output_box)
         elem_desc = ' This element is used for "{}"' if not task_instruction.startswith("This element") else ' {}'

@@ -9,7 +9,7 @@ from accelerate import Accelerator, DistributedType
 from accelerate.state import AcceleratorState
 from typing import List, Optional, Union, Tuple
 from transformers import LlavaForConditionalGeneration, AutoProcessor
-
+from colorama import Fore, Style
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -52,6 +52,7 @@ class LlavaHf(lmms):
         device_map: str = "",
         chat_template: Optional[str] = None,
         use_cache: bool = True,
+        max_new_tokens: Optional[int] = 32,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -76,6 +77,7 @@ class LlavaHf(lmms):
         self.batch_size_per_gpu = int(batch_size)
         self.chat_template = chat_template
         self.use_cache = use_cache
+        self.max_new_tokens = max_new_tokens
         if accelerator.num_processes > 1 and device_map == "":
             assert accelerator.distributed_type in [DistributedType.FSDP, DistributedType.MULTI_GPU, DistributedType.DEEPSPEED], "Unsupported distributed type provided. Only DDP and FSDP are supported."
             # If you want to use DistributedType.DEEPSPEED, you have to run accelerate config before using the model
@@ -280,14 +282,9 @@ class LlavaHf(lmms):
                 self.tokenizer.chat_template = VICUNA_CHAT_TEMPLATE
                 text = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
 
-            if self.accelerator.is_main_process and doc_id[0] % 100 == 0:
-                eval_logger.info(f"Prompt for doc ID {doc_id[0]}:\n\n{text}\n")
-
             inputs = self._image_processor(images=visuals, text=text, return_tensors="pt").to(self._device, self.model.dtype)
-
+            
             gen_kwargs["image_sizes"] = [visuals[idx].size for idx in range(len(visuals))]
-            if "max_new_tokens" not in gen_kwargs:
-                gen_kwargs["max_new_tokens"] = 1024
             if "temperature" not in gen_kwargs:
                 gen_kwargs["temperature"] = 0
             if "top_p" not in gen_kwargs:
@@ -301,7 +298,7 @@ class LlavaHf(lmms):
                     temperature=gen_kwargs["temperature"],
                     top_p=gen_kwargs["top_p"],
                     num_beams=gen_kwargs["num_beams"],
-                    max_new_tokens=gen_kwargs["max_new_tokens"],
+                    max_new_tokens=self.max_new_tokens,
                     use_cache=self.use_cache,
                 )
             except Exception as e:
@@ -310,10 +307,12 @@ class LlavaHf(lmms):
             text_outputs = self.tokenizer.batch_decode(cont, skip_special_tokens=True)[0]
             text_outputs = text_outputs.split("ASSISTANT:")[-1].strip()
 
-            if self.accelerator.is_main_process and doc_id[0] % 100 == 0:
-                eval_logger.info(f"Generated text for doc ID {doc_id[0]}:\n\n{text_outputs}\n")
+            if self._rank == 0 and doc_id[0] % 5 == 0:
+                print(f"Generated text for doc ID {doc_id[0]}:")
+                print(Fore.CYAN + f"prompt: {context}")
+                print(Fore.YELLOW + f"response:{text_outputs}\n" + Style.RESET_ALL)
 
-            res.append(text_outputs)
+            res.append({'prompt':context, 'response':text_outputs})
             self.cache_hook.add_partial("generate_until", (context, gen_kwargs), text_outputs)
             pbar.update(1)
         # reorder this group of results back to original unsorted form

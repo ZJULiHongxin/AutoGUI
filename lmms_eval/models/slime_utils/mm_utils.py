@@ -6,7 +6,7 @@ import math
 import ast
 
 from transformers import StoppingCriteria
-from llava.constants import IMAGE_TOKEN_INDEX
+from slime_utils.constants import IMAGE_TOKEN_INDEX
 from slime_utils.process_image import process_image_naive, process_image_any_res
 
 def select_best_resolution(original_size, possible_resolutions):

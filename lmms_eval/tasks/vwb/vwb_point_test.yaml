@@ -22,6 +22,10 @@ model_specific_prompt_kwargs:
       Locate the element according to the UI screenshot and instruction, output the localized bounding box.
     post_prompt: |
       Instruction: {goal_info}.
+  slime:
+    format: qwen_vl_chat
+    post_prompt: |
+      What are the bounding box coordinates of the element corresponding to the command "{goal_info}" in this UI screenshot?
   cogagent_chat_hf:
     format: cogagent_chat_hf
     pre_prompt: |
