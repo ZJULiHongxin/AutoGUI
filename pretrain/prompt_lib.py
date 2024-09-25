@@ -226,7 +226,7 @@ def apply_vlm_template(task_instruction, model_name, output_box=False):
     if 'llava' in model_name:
         # Llava-1.6 Example: "[INST] <image>\nIn this UI screenshot, what is the position of the element corresponding to the command "{}"? [/INST]"
         prompt = get_llava_prompt(is_v16='1.6' in model_name, output_box=output_box)
-    elif 'slime' in model_name:
+    elif 'autogui_plus' in model_name:
         prompt = get_default_prompt(output_box)
         elem_desc = ' This element is used for "{}"' if not task_instruction.startswith("This element") else ' {}'
         prompt = prompt + elem_desc
@@ -236,7 +236,7 @@ def apply_vlm_template(task_instruction, model_name, output_box=False):
     elif 'cogagent' in model_name:
         # CogAgent-chat Example: "Can you advise me on how to {}?"
         prompt = get_cogagent_prompt(output_box=output_box)
-    elif 'qwen' in model_name:
+    elif 'qwen' in model_name or 'slime' in model_name:
         # Qwen-VL Example: "What are the bounding box coordinates of the element corresponding to the command \"{}\" in this UI screenshot?"
         prompt = get_qwenvl_prompt(output_box=output_box)
     elif 'monkey' in model_name:
