@@ -22,32 +22,16 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 from colorama import Fore, Style
 
-@register_model("slime")
-class SLIME(lmms):
-    """
-    Slime Model for Hugging Face Transformers: https://huggingface.co/docs/transformers/v4.39.3/en/model_doc/llava
-
-    Adapted from the InstructBLIP model in lmms_eval/models/instructblip.py
-
-    Example usage:
-
-    accelerate launch --num_processes=8 -m lmms_eval \
-        --model llava_hf \
-        --model_args pretrained=llava-hf/llava-1.5-7b-hf \
-        --tasks mme \
-        --batch_size 1 \
-        --output_path ./logs/ \
-        --log_samples
-    """
-
+@register_model("autogui_plus")
+class AutoGUIPlus(lmms):
     def __init__(
         self,
-        pretrained: str = 'yifanzhang114/SliME-Llama3-8B',
+        pretrained: str = '',
         model_base: Optional[str] = None,
         device: str = "cuda",
         dtype: Optional[Union[str, torch.dtype]] = "auto",
         batch_size: int = 1,
-        max_new_tokens: Optional[int] = 32,
+        trust_remote_code: Optional[bool] = False,
         attn_implementation: Optional[str] = None,
         device_map: str = "",
         chat_template: Optional[str] = None,
@@ -73,8 +57,7 @@ class SLIME(lmms):
 
         print(f"Loading model from {pretrained}")
         self._tokenizer, self._model, self._image_processor, context_len = load_pretrained_model(pretrained, model_base, model_name, use_flash_attn=True, topp=topp)
-        self.max_new_tokens = max_new_tokens
-        
+
         self._config = self._model.config
         self.batch_size_per_gpu = int(batch_size)
         self.chat_template = chat_template
@@ -266,7 +249,7 @@ class SLIME(lmms):
                     temperature=gen_kwargs["temperature"],
                     top_p=gen_kwargs["top_p"],
                     num_beams=gen_kwargs["num_beams"],
-                    max_new_tokens=self.max_new_tokens,
+                    max_new_tokens=gen_kwargs["max_new_tokens"],
                     use_cache=self.use_cache,
                 )
             except Exception as e:
