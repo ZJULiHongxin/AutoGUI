@@ -139,35 +139,35 @@ def motif_doc_to_text(doc, model_name='', model_specific_prompt_kwargs=None):
         text: str
             prompt
     '''
-    global_instr = doc['goal']
+    # global_instr = doc['goal']
     step_instr = doc['instr']
     pre_prompt = ""
     post_prompt = ""
 
     if model_specific_prompt_kwargs is None:
-        prompt = apply_vlm_template(global_instr, model_name)
+        prompt = apply_vlm_template(step_instr, model_name)
     else:
         # Use random prompt templates
         if model_specific_prompt_kwargs is not None:
             if model_specific_prompt_kwargs['format'] == 'random':
-                post_prompt = random.choice(web_loca_all_point_prompt) + f" This element is used for \"{global_instr}\""
+                post_prompt = random.choice(web_loca_all_point_prompt) + f" This element is used for \"{step_instr}\""
                 
-            elif model_specific_prompt_kwargs['format'] == 'seeclick':
-                prev_actions_str = ""
-                for prev_a_str in doc['prev_action_str_seeclick'][-PREV_ACTION_LENGTH:]:
-                    prev_actions_str += prev_a_str + "\n"
-            else:
-                prev_actions_str = ""
-                for prev_a_str in doc['prev_action_str'][-PREV_ACTION_LENGTH:]:
-                    prev_actions_str += prev_a_str + "\n"
+            # elif model_specific_prompt_kwargs['format'] == 'seeclick':
+            #     prev_actions_str = ""
+            #     for prev_a_str in doc['prev_action_str_seeclick'][-PREV_ACTION_LENGTH:]:
+            #         prev_actions_str += prev_a_str + "\n"
+            # else:
+            #     prev_actions_str = ""
+            #     for prev_a_str in doc['prev_action_str'][-PREV_ACTION_LENGTH:]:
+            #         prev_actions_str += prev_a_str + "\n"
 
             if "pre_prompt" in model_specific_prompt_kwargs:
                 pre_prompt = model_specific_prompt_kwargs["pre_prompt"]
             if "post_prompt" in model_specific_prompt_kwargs:
-                post_prompt = model_specific_prompt_kwargs["post_prompt"].format(goal_info=global_instr, step_instr=step_instr, previous_actions=prev_actions_str, action_space= simplified_action_space)
+                post_prompt = model_specific_prompt_kwargs["post_prompt"].format(goal_info=step_instr)
         
         else:
-            post_prompt = random.choice(web_loca_all_point_prompt) + f" This element is used for \"{global_instr}\""
+            post_prompt = random.choice(web_loca_all_point_prompt) + f" This element is used for \"{step_instr}\""
 
         prompt = f"{pre_prompt}{post_prompt}"
     return prompt

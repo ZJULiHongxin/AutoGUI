@@ -40,6 +40,8 @@ process_results: !function utils_point.vwb_point_process_results
 model_specific_process_kwargs:
   autogui:
     scale: 100
+  autogui_plus:
+    scale: 100
   qwen_vl_chat:
     scale: 1000
   monkey:
