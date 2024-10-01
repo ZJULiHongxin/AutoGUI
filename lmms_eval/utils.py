@@ -918,3 +918,23 @@ class Collator:
 
         if arr:
             yield arr
+
+from PIL import Image
+
+def resize_image(image, max_size=1280):
+    # Get the original width and height of the image
+    width, height = image.size
+    
+    # Check if the image needs to be resized
+    if max(width, height) > max_size:
+        # Calculate the scaling factor
+        scaling_factor = max_size / float(max(width, height))
+        
+        # Compute the new width and height
+        new_width = int(width * scaling_factor)
+        new_height = int(height * scaling_factor)
+        
+        # Resize the image
+        image = image.resize((new_width, new_height))
+    
+    return image

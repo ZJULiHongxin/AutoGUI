@@ -10,7 +10,8 @@ from accelerate.state import AcceleratorState
 from typing import List, Optional, Union, Tuple
 from transformers import AutoModel, AutoTokenizer
 
-
+from PIL import Image
+from colorama import Fore, Style
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -26,7 +27,7 @@ class MiniCPM_V(lmms):
 
     def __init__(
         self,
-        pretrained: str = "openbmb/MiniCPM-V",
+        pretrained: str = 'openbmb/MiniCPM-V-2_6',
         device: Optional[str] = "cuda",
         dtype: Optional[Union[str, torch.dtype]] = torch.bfloat16,
         batch_size: Optional[Union[int, str]] = 1,
@@ -198,7 +199,7 @@ class MiniCPM_V(lmms):
                 gen_kwargs["num_beams"] = 1
             try:
                 # ominicpm does not give much information on how they do eval so I just use the chat format.
-                response, context, _ = self.model.chat(
+                response = self.model.chat(
                     image=visuals[0],
                     msgs=msgs,
                     context=None,
@@ -212,7 +213,14 @@ class MiniCPM_V(lmms):
             except Exception as e:
                 eval_logger.error(f"Error {e} in generating")
                 cont = ""
-            res.append(response)
+
+            if (hasattr(self, "accelerator") and self.accelerator.is_main_process or not hasattr(self, "accelerator") is None) and doc_id[0] % 5 == 0:
+                print(f"Generated text for doc ID {doc_id[0]}:")
+                print(Fore.CYAN + f"prompt: {context}")
+                print(Fore.YELLOW + f"response:{response}\n" + Style.RESET_ALL)
+
+            res.append({'prompt':context, 'response':response})
+
             self.cache_hook.add_partial("generate_until", (context, gen_kwargs), response)
             pbar.update(1)
             # reorder this group of results back to original unsorted form

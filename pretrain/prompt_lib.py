@@ -56,6 +56,13 @@ def get_llava_prompt(is_v16, add_special_tokens=True, output_box=True):
     
     return prompt
 
+POSITION_PROMPT = """In this UI screenshot, what is the position of the element corresponding to the description "{}"? Output the normalized X and Y coordinates, ranging from 0.00 to 1.00. Note that the X-axis runs horizontally from left (0.00) to right (1.00), and the Y-axis runs vertically from top (0.00) to bottom (1.00). Your should carefully view the image before finally predicting the required position in the format [X, Y] (two decimal places). Your answer MUST only include the coordiniates withou any explanations."""
+
+def get_gpt4o_prompt(output_box=True):
+    prompt = BOX_PROMPT if output_box else POSITION_PROMPT
+    
+    return prompt
+
 # DeepSeek-VL: https://huggingface.co/deepseek-ai/deepseek-vl-7b-chat#simple-inference-example
 DEEPSEEK_IMAGE_PLACEHOLDER = '<image_placeholder>'
 
@@ -223,13 +230,19 @@ def get_default_prompt(output_box):
 
 def apply_vlm_template(task_instruction, model_name, output_box=False):
     model_name = model_name.lower()
-    if 'llava' in model_name:
+    if 'gpt' in model_name:
         # Llava-1.6 Example: "[INST] <image>\nIn this UI screenshot, what is the position of the element corresponding to the command "{}"? [/INST]"
-        prompt = get_llava_prompt(is_v16='1.6' in model_name)
+        prompt = get_gpt4o_prompt(output_box=output_box)
+    elif 'llava' in model_name or 'gpt' in model_name:
+        # Llava-1.6 Example: "[INST] <image>\nIn this UI screenshot, what is the position of the element corresponding to the command "{}"? [/INST]"
+        prompt = get_llava_prompt(is_v16='1.6' in model_name, output_box=output_box)
     elif 'autogui_plus' in model_name:
         prompt = get_default_prompt(output_box)
         elem_desc = ' This element is used for "{}"' if not task_instruction.startswith("This element") else ' {}'
         prompt = prompt + elem_desc
+    elif 'minicpm_v' in model_name:
+        # Llava-1.6 Example: "[INST] <image>\nIn this UI screenshot, what is the position of the element corresponding to the command "{}"? [/INST]"
+        prompt = get_qwenvl_prompt(output_box=output_box)
     elif 'deepseek' in model_name:
         # DeepSeek-vl Example: '<image_placeholder>In this UI screenshot, what is the position of the element corresponding to the command "{question}"?'
         prompt = get_deepseek_prompt(output_box=output_box)

@@ -14,14 +14,15 @@ from lmms_eval.api.registry import register_model
 from lmms_eval import utils
 
 from PIL import Image
+from colorama import Fore, Style
 
 API_TYPE = os.getenv("API_TYPE", "openai")
 NUM_SECONDS_TO_SLEEP = 5
 eval_logger = logging.getLogger("lmms-eval")
 
 if API_TYPE == "openai":
-    API_URL = os.getenv("OPENAI_API_URL", "https://api.openai.com/v1/chat/completions")
-    API_KEY = os.getenv("OPENAI_API_KEY", "YOUR_API_KEY")
+    API_URL = os.getenv("OPENAI_API_URL", "https://xiaoai.plus/v1/chat/completions")
+    API_KEY = os.getenv("OPENAI_API_KEY", "sk-Cl7vAhWVOB85YaBF324b6995E9374b1f959400662a0385C1")
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json",
@@ -39,7 +40,7 @@ elif API_TYPE == "azure":
 class GPT4V(lmms):
     def __init__(
         self,
-        model_version: str = "gpt-4-vision-preview",
+        model_version: str = "gpt-4o-mini",
         **kwargs,
     ) -> None:
         super().__init__()
@@ -69,12 +70,13 @@ class GPT4V(lmms):
         pbar = tqdm(total=len(requests), disable=(self.rank != 0), desc="Model Responding")
 
         for contexts, gen_kwargs, doc_to_visual, doc_id, task, split in [reg.args for reg in requests]:
+            prompt = contexts
             # encode, pad, and truncate contexts for this batch
             visuals = [doc_to_visual(self.task_dict[task][split][doc_id])]
             visuals = self.flatten(visuals)
             imgs = []
             for visual in visuals:
-                img = self.encode_image(visual)
+                img = self.encode_image(utils.resize_image(visual, max_size=1280))
                 imgs.append(img)
 
             payload = {"model": self.model_version, "messages": []}
@@ -99,7 +101,7 @@ class GPT4V(lmms):
                 payload["messages"][-1]["content"].append({"type": "text", "text": contexts[-1]})
 
             if "max_new_tokens" not in gen_kwargs:
-                gen_kwargs["max_new_tokens"] = 1024
+                gen_kwargs["max_new_tokens"] = 32
             if "temperature" not in gen_kwargs:
                 gen_kwargs["temperature"] = 0
             if "top_p" not in gen_kwargs:
@@ -125,7 +127,13 @@ class GPT4V(lmms):
                     else:  # If this was the last attempt, log and return empty
                         eval_logger.error(f"All 5 attempts failed. Last error message: {str(e)}")
                         content = ""
-            res.append(content)
+            
+            if doc_id % 2 == 0:
+                print(f"Generated text for doc ID {doc_id}:")
+                print(Fore.CYAN + f"prompt: {prompt}")
+                print(Fore.YELLOW + f"response:{content}\n" + Style.RESET_ALL)
+
+            res.append({'prompt': prompt, 'response': content})
             pbar.update(1)
         return res
 

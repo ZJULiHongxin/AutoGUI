@@ -117,6 +117,8 @@ def pred_2_point(pred, keep_box=True, scale=1000):
                     if len(another_point) == 2:
                         click_point = [(another_point[0] + click_point[0]) / 2, (another_point[1] + click_point[1]) / 2]
                 except: pass
+    elif pred.startswith('<box>'): # '<box>598 102 673 406</box>.'
+        pass
 
     if click_point is None: # For SeeClick
         if '<box>' in pred: # For QWen-VL-Chat

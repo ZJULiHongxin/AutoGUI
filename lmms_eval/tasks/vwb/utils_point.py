@@ -132,7 +132,7 @@ def vwb_point_process_results(doc, result, model_specific_process_kwargs=None):
     else:
         correct = 0
     
-    data_dict = {"acc": correct}
+    data_dict = {"prompt": result[0]["prompt"], "response": result[0]["response"],"task": doc["task"], "pred": pred, "acc": correct, 'bbox': doc['box'], 'unnormalized_box': doc['unnormalized_box']}
 
     return {
         f"vwb_{doc['task']}_result":  data_dict,
