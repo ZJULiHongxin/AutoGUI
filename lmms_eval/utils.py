@@ -10,6 +10,10 @@ import collections
 import importlib.util
 import fnmatch
 import datetime
+import base64
+
+from io import BytesIO
+
 from typing import (
     Any,
     Callable,
@@ -938,3 +942,12 @@ def resize_image(image, max_size=1280):
         image = image.resize((new_width, new_height))
     
     return image
+
+
+# Function to encode the image
+def encode_image(image: Image):
+    output_buffer = BytesIO()
+    image.save(output_buffer, format="PNG")
+    byte_data = output_buffer.getvalue()
+    base64_str = base64.b64encode(byte_data).decode("utf-8")
+    return base64_str

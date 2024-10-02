@@ -65,3 +65,5 @@ model_specific_process_kwargs:
     scale: 1000
   slime:
     scale: 100
+  minicpm_v:
+    scale: 1000

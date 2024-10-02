@@ -240,9 +240,9 @@ def apply_vlm_template(task_instruction, model_name, output_box=False):
         prompt = get_default_prompt(output_box)
         elem_desc = ' This element is used for "{}"' if not task_instruction.startswith("This element") else ' {}'
         prompt = prompt + elem_desc
-    elif 'minicpm_v' in model_name:
+    elif 'minicpm' in model_name:
         # Llava-1.6 Example: "[INST] <image>\nIn this UI screenshot, what is the position of the element corresponding to the command "{}"? [/INST]"
-        prompt = get_qwenvl_prompt(output_box=output_box)
+        prompt = get_qwenvl_prompt(output_box=True)
     elif 'deepseek' in model_name:
         # DeepSeek-vl Example: '<image_placeholder>In this UI screenshot, what is the position of the element corresponding to the command "{question}"?'
         prompt = get_deepseek_prompt(output_box=output_box)

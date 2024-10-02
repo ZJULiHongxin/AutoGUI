@@ -1,7 +1,5 @@
-from io import BytesIO
 from copy import deepcopy
 import os
-import base64
 from typing import List, Tuple
 from tqdm import tqdm
 import requests as url_requests
@@ -22,7 +20,7 @@ eval_logger = logging.getLogger("lmms-eval")
 
 if API_TYPE == "openai":
     API_URL = os.getenv("OPENAI_API_URL", "https://xiaoai.plus/v1/chat/completions")
-    API_KEY = os.getenv("OPENAI_API_KEY", "sk-Cl7vAhWVOB85YaBF324b6995E9374b1f959400662a0385C1")
+    API_KEY = os.getenv("OPENAI_API_KEY", "")
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json",
@@ -50,14 +48,6 @@ class GPT4V(lmms):
         self.model_version = model_version
         self.image_token = "<image>"
 
-    # Function to encode the image
-    def encode_image(self, image: Image):
-        output_buffer = BytesIO()
-        image.save(output_buffer, format="PNG")
-        byte_data = output_buffer.getvalue()
-        base64_str = base64.b64encode(byte_data).decode("utf-8")
-        return base64_str
-
     def flatten(self, input):
         new_list = []
         for i in input:
@@ -76,7 +66,7 @@ class GPT4V(lmms):
             visuals = self.flatten(visuals)
             imgs = []
             for visual in visuals:
-                img = self.encode_image(utils.resize_image(visual, max_size=1280))
+                img = utils.encode_image(utils.resize_image(visual, max_size=1280))
                 imgs.append(img)
 
             payload = {"model": self.model_version, "messages": []}

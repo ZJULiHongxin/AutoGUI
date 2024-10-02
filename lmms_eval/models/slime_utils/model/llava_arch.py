@@ -23,7 +23,8 @@ from .multimodal_projector.builder import build_vision_projector
 from .multimodal_resampler.builder import build_vision_sampler
 from slime_utils.constants import IGNORE_INDEX, IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_PATCH_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN, GEMMA_PATCH_POS
 
-from slime_utils.mm_utils import get_anyres_image_grid_shape
+from slime_utils.mm_utils import get_anyres_image_grid_shape, select_best_resolution_uhd
+from slime_utils.model.multimodal_resampler.sampler import MultiCompressor
 
 class LlavaMetaModel:
 
@@ -91,7 +92,9 @@ class LlavaMetaModel:
         self.config.mm_resampler_temp = mm_resampler_temp
         self.config.seperator = getattr(model_args, 'seperator', 1919)
         self.config.mm_learnable_gated = getattr(model_args, 'mm_learnable_gated', -1)
-
+        self.config.mm_learnable_compressor = getattr(model_args, 'mm_learnable_compressor', -1)
+        self.config.compressor_aggr_type = getattr(model_args, 'compressor_aggr_type', -1)
+        
         if getattr(self, 'mm_projector', None) is None:
             self.mm_projector = build_vision_projector(self.config)
             self.sampler = build_vision_sampler(self.config)
@@ -158,17 +161,6 @@ class LlavaMetaForCausalLM(ABC):
     def get_model(self):
         pass
 
-    def get_vision_tower(self):
-        return self.get_model().get_vision_tower()
-
-    @property
-    def comma_index(self):
-        return [235269]
-    
-    @property
-    def linebreak_index(self):
-        return [108]
-
     @property
     def global_indicator(self):
         return torch.tensor([235322, 6335, 235298, 3030, 235313]) # '<global_img>'
@@ -179,6 +171,9 @@ class LlavaMetaForCausalLM(ABC):
 
     def get_patch_indicator(self, rowcol: str):
         return GEMMA_PATCH_POS[rowcol]
+
+    def get_vision_tower(self):
+        return self.get_model().get_vision_tower()
 
     def get_pure_text_embedding(self, input_ids, attention_mask=None, labels=None):
         if attention_mask is None:
@@ -229,7 +224,7 @@ class LlavaMetaForCausalLM(ABC):
         
         assert new_input_mask.shape == new_input_embeds.shape[:2]
         return new_input_embeds, new_input_mask
-        
+
     def encode_images(self, images, input_ids=None, split_sizes=None, attention_mask=None, images_mask=None, image_sizes=None, labels=None):
         mm_patch_merge_type = getattr(self.config, 'mm_patch_merge_type', 'flat')
         use_local_only = getattr(self.config, 'use_local_only', False)
@@ -238,12 +233,10 @@ class LlavaMetaForCausalLM(ABC):
             images = torch.split(images, split_sizes, dim=0)
             seperater = self.get_model().embed_tokens(torch.tensor(self.config.seperator, dtype=input_ids.dtype, device=input_ids.device))
             # seperater = self.get_model().embed_tokens(torch.tensor(1919, dtype=input_ids.dtype, device=input_ids.device))
-            text_input_embeds, text_input_mask = self.get_pure_text_embedding(input_ids, attention_mask, labels) # emb: B x L x 2048    |    mask: B x L
+            text_input_embeds, text_input_mask = self.get_pure_text_embedding(input_ids, attention_mask, labels)
             image_features = [self.get_model().get_vision_tower()(imgs) for imgs in images] # 336 -> 576 (tokens) x 1024 (dims); 672 -> 2304 (tokens) x 1024 (dim)
-            
-            compressor = self.get_model().sampler.post_qformer
             if not use_local_only:
-                if compressor.module_type == 'h-reducer':
+                if self.get_model().sampler.post_qformer.module_type == 'h-reducer':
                     batched_global_images = torch.stack([imgs[0] for imgs in image_features])
                     global_image_features = self.get_model().sampler.post_qformer(batched_global_images)
                     global_image_features = self.get_model().mm_projector(global_image_features)
@@ -254,18 +247,17 @@ class LlavaMetaForCausalLM(ABC):
                         global_image_features = [torch.cat([
                             self.get_model().embed_tokens(self.global_indicator.to(x.device)), x]) for x in global_image_features]
                 else:
-                    global_image_features = [self.get_model().mm_projector(imgs[0]) for imgs in image_features] # 576 x 2048
-
+                    global_image_features = [self.get_model().mm_projector(imgs[0]) for imgs in image_features]
             if not use_global_only:
-                if compressor.module_type == 'resampler':
-                    local_image_features = [compressor(imgs[1:]) for imgs in image_features] # #patches x 576 x 1024 -> #patches x 144 x 1024
+                # all_compressors = [self.get_model().sampler.post_qformer] if not isinstance(self.get_model().sampler.post_qformer, MultiCompressor) else self.get_model().sampler.post_qformer.projector_list
 
-                elif compressor.module_type == 'instructblip':
-                    local_image_features = [compressor(image_features[i][1:], text=text_input_embeds[i:i+1], attn_mask=text_input_mask[i:i+1]) for i in range(len(image_features))]
+                local_image_features_list = []
                 
-                elif compressor.module_type == 'h-reducer':
-                    local_image_features = [compressor(imgs[1:]) for imgs in image_features] # #patches x 576 x 1024 -> #patches x 144 x 1024
-
+                if self.get_model().sampler.post_qformer.module_type == 'h-reducer':
+                    local_image_features = [self.get_model().sampler.post_qformer(imgs[1:]).permute(1,0,2) for imgs in image_features] # #patches x 576 x 1024 -> #patches x 144 x 1024 # 注：这里需要permute，和使用spatial时候的维度对齐                          
+                else:
+                    local_image_features = [self.get_model().sampler.post_qformer(imgs[1:]) for imgs in image_features]
+                
                 local_image_features = [self.get_model().mm_projector(imgs) for imgs in local_image_features]
                 
                 if images_mask is not None and images_mask[0].size(0) - 1 == local_image_features[0].size(0):
@@ -274,14 +266,17 @@ class LlavaMetaForCausalLM(ABC):
                         local_image_features[i] = torch.index_select(feature, 0, selected_indices)
                         
                 if mm_patch_merge_type == 'flat':
-                    local_image_features = [x.permute(1,0,2).flatten(0,1) for x in local_image_features] # permute so that the 1st dim denotes #patches
+                    local_image_features = [x.flatten(0, 1) for x in local_image_features]
                 elif mm_patch_merge_type == 'flat_indicator':
                     new_local_image_features = []
                     for image_idx, image_feature in enumerate(local_image_features):
-                        num_patch_width, num_patch_height = get_anyres_image_grid_shape(image_sizes[image_idx], self.config.image_grid_pinpoints, self.get_vision_tower().config.image_size)
+                        # num_patch_width, num_patch_height = get_anyres_image_grid_shape(image_sizes[image_idx], self.config.image_grid_pinpoints, self.get_vision_tower().config.image_size)
+                        crop_size = self.get_vision_tower().config.image_size
+                        best_res = select_best_resolution_uhd(image_sizes[image_idx], processor_size=[crop_size] * 2)
+                        num_patch_width, num_patch_height = best_res[0] // crop_size, best_res[1] // crop_size
 
-                        image_feature = image_feature.view(num_patch_height, num_patch_width, -1, image_feature.shape[-1])
-                        
+                        image_feature = image_feature.view(num_patch_height, num_patch_width, -1, image_feature.shape[-1]) # bug
+
                         imgs_with_indicators = []
                         for row in range(num_patch_height):
                             for col in range(num_patch_width):
@@ -290,7 +285,6 @@ class LlavaMetaForCausalLM(ABC):
                         new_local_image_features.append(torch.cat(imgs_with_indicators))
 
                     local_image_features = new_local_image_features
-
                 elif mm_patch_merge_type == 'spatial':
                     for image_idx, image_feature in enumerate(local_image_features):
                         if 0 in image_feature.shape:
@@ -298,16 +292,125 @@ class LlavaMetaForCausalLM(ABC):
                             continue
                         num_patch_width, num_patch_height = get_anyres_image_grid_shape(image_sizes[image_idx], self.config.image_grid_pinpoints, self.get_vision_tower().config.image_size)
                         image_feature = image_feature.view(num_patch_height, num_patch_width, self.get_model().sampler.grid_size, self.get_model().sampler.grid_size, -1)
-                        image_feature = image_feature.permute(0, 2, 1, 3, 4).contiguous() # num_patch_height x num_patch_width x 12 x 12 x 2048 -> num_patch_height x 12 x num_patch_width x 12 x 2048
-                        image_feature = image_feature.flatten(0, 3) # 
+                        image_feature = image_feature.permute(0, 2, 1, 3, 4).contiguous()
+                        image_feature = image_feature.flatten(0, 3)
                         local_image_features[image_idx] = image_feature
                 else:
                     assert NotImplementedError
                 
                 # 经过上面post_qformer attn-pool以及mm_projector映射后，这里利用相似度筛选local token
-                if mm_patch_merge_type != 'flat_indicator':
-                    local_image_features = [self.get_model().sampler(local_image_features[i], text_embedding=text_input_embeds[i], attn_mask=text_input_mask[i]) for i in range(len(local_image_features))] 
-            
+                local_image_features = [self.get_model().sampler(local_image_features[i], text_embedding=text_input_embeds[i], attn_mask=text_input_mask[i]) for i in range(len(local_image_features))] 
+            if use_global_only:
+                image_features = [global_image_features[i].unsqueeze(0) for i in range(len(image_features))]
+            elif use_local_only:
+                image_features = [local_image_features[i].unsqueeze(0) for i in range(len(image_features))]
+            else:
+                global_image_features = [torch.cat((global_image_features[i], seperater.unsqueeze(0).to(global_image_features[i].device))) for i in range(len(image_features))]
+                image_features = [torch.cat((global_image_features[i], local_image_features[i]), dim=0).unsqueeze(0) for i in range(len(image_features))]
+                # print(global_image_features[0], local_image_features[0])
+        elif split_sizes is not None:
+            images = torch.split(images, split_sizes, dim=0)
+            image_features = [self.get_model().get_vision_tower()(imgs) for imgs in images]
+            image_features = [self.get_model().mm_projector(imgs) for imgs in image_features]
+        else:
+            image_features = self.get_model().get_vision_tower()(images)
+            if 'gated' in self.config.mm_projector_type:
+                text_input_embeds, text_input_mask = self.get_pure_text_embedding(input_ids, attention_mask, labels)
+                image_features = self.get_model().mm_projector(image_features, text_embedding=text_input_embeds, attn_mask=text_input_mask)
+            else:
+                image_features = self.get_model().mm_projector(image_features)
+        
+        return image_features, split_sizes
+        
+    def encode_images1(self, images, input_ids=None, split_sizes=None, attention_mask=None, images_mask=None, image_sizes=None, labels=None):
+        mm_patch_merge_type = getattr(self.config, 'mm_patch_merge_type', 'flat')
+        use_local_only = getattr(self.config, 'use_local_only', False)
+        use_global_only = getattr(self.config, 'use_global_only', False)
+        if self.get_model().has_sampler and split_sizes is not None:
+            images = torch.split(images, split_sizes, dim=0)
+            seperater = self.get_model().embed_tokens(torch.tensor(self.config.seperator, dtype=input_ids.dtype, device=input_ids.device))
+            # seperater = self.get_model().embed_tokens(torch.tensor(1919, dtype=input_ids.dtype, device=input_ids.device))
+            text_input_embeds, text_input_mask = self.get_pure_text_embedding(input_ids, attention_mask, labels)
+            image_features = [self.get_model().get_vision_tower()(imgs) for imgs in images] # 336 -> 576 (tokens) x 1024 (dims); 672 -> 2304 (tokens) x 1024 (dim)
+            if not use_local_only:
+                if self.get_model().sampler.post_qformer.module_type == 'h-reducer':
+                    batched_global_images = torch.stack([imgs[0] for imgs in image_features])
+                    global_image_features = self.get_model().sampler.post_qformer(batched_global_images)
+                    global_image_features = self.get_model().mm_projector(global_image_features)
+                    
+                    global_image_features = [x.squeeze(1) for x in torch.split(global_image_features, [1 for _ in range(global_image_features.shape[1])], dim=1)]
+                    
+                    if mm_patch_merge_type == 'flat_indicator':
+                        global_image_features = [torch.cat([
+                            self.get_model().embed_tokens(self.global_indicator.to(x.device)), x]) for x in global_image_features]
+                else:
+                    global_image_features = [self.get_model().mm_projector(imgs[0]) for imgs in image_features]
+            if not use_global_only:
+                all_compressors = [self.get_model().sampler.post_qformer] if not isinstance(self.get_model().sampler.post_qformer, MultiCompressor) else self.get_model().sampler.post_qformer.projector_list
+
+                local_image_features_list = []
+                
+                for comp_idx, compressor in enumerate(all_compressors):
+                    if self.config.mm_learnable_compressor > -1 and comp_idx != self.config.mm_learnable_compressor: continue
+                    if compressor.module_type == 'h-reducer':
+                        local_image_features = [compressor(imgs[1:]).permute(1,0,2) for imgs in image_features] # #patches x 576 x 1024 -> #patches x 144 x 1024 # 注：这里需要permute，和使用spatial时候的维度对齐                          
+                    else:
+                        local_image_features = [compressor(imgs[1:]) for imgs in image_features]
+                    
+                    local_image_features = [self.get_model().mm_projector(imgs) for imgs in local_image_features]
+                    
+                    if images_mask is not None and images_mask[0].size(0) - 1 == local_image_features[0].size(0):
+                        for i, (mask, feature) in enumerate(zip(images_mask, local_image_features)):
+                            selected_indices = torch.nonzero(mask[1:]).squeeze(1)
+                            local_image_features[i] = torch.index_select(feature, 0, selected_indices)
+                    
+                    #print(compressor.module_type)
+                    if mm_patch_merge_type == 'flat':
+                        #print("flat")
+                        local_image_features = [x.flatten(0, 1) for x in local_image_features]
+                    elif mm_patch_merge_type == 'flat_indicator':
+                        new_local_image_features = []
+                        for image_idx, image_feature in enumerate(local_image_features):
+                            # num_patch_width, num_patch_height = get_anyres_image_grid_shape(image_sizes[image_idx], self.config.image_grid_pinpoints, self.get_vision_tower().config.image_size)
+                            crop_size = self.get_vision_tower().config.image_size
+                            best_res = select_best_resolution_uhd(image_sizes[image_idx], processor_size=[crop_size] * 2)
+                            num_patch_width, num_patch_height = best_res[0] // crop_size, best_res[1] // crop_size
+
+                            image_feature = image_feature.view(num_patch_height, num_patch_width, -1, image_feature.shape[-1]) # bug
+
+                            imgs_with_indicators = []
+                            for row in range(num_patch_height):
+                                for col in range(num_patch_width):
+                                    imgs_with_indicators.append(self.get_model().embed_tokens(self.get_patch_indicator(f"{row+1}{col+1}").to(image_feature.device)))
+                                    imgs_with_indicators.append(image_feature[row,col])
+                            new_local_image_features.append(torch.cat(imgs_with_indicators))
+
+                        local_image_features = new_local_image_features
+                    elif mm_patch_merge_type == 'spatial':
+                        #print("spatial")
+                        for image_idx, image_feature in enumerate(local_image_features):
+                            if 0 in image_feature.shape:
+                                local_image_features[image_idx] = image_feature.flatten(0, 1)
+                                continue
+                            num_patch_width, num_patch_height = get_anyres_image_grid_shape(image_sizes[image_idx], self.config.image_grid_pinpoints, self.get_vision_tower().config.image_size)
+                            image_feature = image_feature.view(num_patch_height, num_patch_width, self.get_model().sampler.grid_size, self.get_model().sampler.grid_size, -1)
+                            image_feature = image_feature.permute(0, 2, 1, 3, 4).contiguous()
+                            image_feature = image_feature.flatten(0, 3)
+                            local_image_features[image_idx] = image_feature
+                    else:
+                        assert NotImplementedError
+                
+                    local_image_features_list.append(local_image_features)
+
+                # Average all compressor output features
+                # if getattr(self.config, 'compressor_aggr_type', 'avg') == 'avg':
+                #     local_image_features = [torch.mean(torch.stack([local_image_features_list[comp_idx][batch_idx] for comp_idx in range(len(local_image_features_list))]), dim=0) for batch_idx in range(len(image_features))]
+                
+                local_image_features = self.get_model().sampler.post_qformer.aggregate(local_image_features_list)
+
+                # 经过上面post_qformer attn-pool以及mm_projector映射后，这里利用相似度筛选local token
+                local_image_features = [self.get_model().sampler(local_image_features[i], text_embedding=text_input_embeds[i], attn_mask=text_input_mask[i]) for i in range(len(local_image_features))]
+                
             if use_global_only:
                 image_features = [global_image_features[i].unsqueeze(0) for i in range(len(image_features))]
             elif use_local_only:
@@ -352,9 +455,9 @@ class LlavaMetaForCausalLM(ABC):
             mm_patch_merge_type = getattr(self.config, 'mm_patch_merge_type', 'flat')
             image_aspect_ratio = getattr(self.config, 'image_aspect_ratio', 'square')
 
-            if mm_patch_merge_type.startswith('flat'):
+            if mm_patch_merge_type == 'flat':
                 image_features = [x.flatten(0, 1) for x in image_features]
-            elif mm_patch_merge_type.startswith('spatial'):
+            else:
                 new_image_features = []
                 for image_idx, image_feature in enumerate(image_features):
                     if image_feature.shape[0] > 1:
@@ -523,8 +626,8 @@ class LlavaMetaForCausalLM(ABC):
         if model_args.mm_use_im_patch_token:
             tokenizer.add_tokens([DEFAULT_IMAGE_PATCH_TOKEN], special_tokens=True)
             self.resize_token_embeddings(len(tokenizer))
-        if model_args.mm_use_im_start_end:
 
+        if model_args.mm_use_im_start_end:
             num_new_tokens = tokenizer.add_tokens([DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN], special_tokens=True)
             self.resize_token_embeddings(len(tokenizer))
 

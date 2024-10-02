@@ -61,7 +61,7 @@ def screenspot_rec_process_result(doc, result, model_specific_process_kwargs=Non
         pred = [0,0,0,0]
     ann_id = doc["file_name"]
     data_dict = {"prompt": result[0]["prompt"], "response": result[0]["response"],"instruction": doc["instruction"], "pred": pred, "ann_id": ann_id, 'bbox': doc['bbox'], 'data_type': doc['data_type'], 'data_source': doc['data_source']}
-    return {f"{metric}": data_dict for metric in REC_METRICS}
+    return {f"screenspot_{metric}": data_dict for metric in REC_METRICS}
 
 
 def compute_iou(box1, box2):

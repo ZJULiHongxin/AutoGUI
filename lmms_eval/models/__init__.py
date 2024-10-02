@@ -9,6 +9,7 @@ AVAILABLE_MODELS = {
     "qwen_vl": "Qwen_VL",
     "qwen_vl_chat": "Qwen_VL_Chat",
     "qwen2_vl": "Qwen2_VL",
+    "qwen2_vl_alicloud": "Qwen2_VL_Alicoud",
     "fuyu": "Fuyu",
     "gpt4v": "GPT4V",
     "instructblip": "InstructBLIP",

@@ -32,6 +32,7 @@ class MiniCPM_V(lmms):
         dtype: Optional[Union[str, torch.dtype]] = torch.bfloat16,
         batch_size: Optional[Union[int, str]] = 1,
         trust_remote_code: Optional[bool] = True,
+        max_new_tokens: Optional[int] = 28,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -46,6 +47,7 @@ class MiniCPM_V(lmms):
         self._model = AutoModel.from_pretrained(pretrained, trust_remote_code=trust_remote_code, torch_dtype=dtype, device_map=self._device).to(dtype)
         self._tokenizer = AutoTokenizer.from_pretrained(pretrained, trust_remote_code=trust_remote_code)
         self._config = self._model.config
+        self.max_new_tokens = max_new_tokens
         self.model.eval()
         self.model.tie_weights()
         self.batch_size_per_gpu = int(batch_size)
@@ -189,8 +191,6 @@ class MiniCPM_V(lmms):
             msgs = [{"role": "user", "content": context}]
 
             gen_kwargs["image_sizes"] = [visuals[idx].size for idx in range(len(visuals))]
-            if "max_new_tokens" not in gen_kwargs:
-                gen_kwargs["max_new_tokens"] = 1024
             if "temperature" not in gen_kwargs:
                 gen_kwargs["temperature"] = 0
             if "top_p" not in gen_kwargs:
@@ -208,7 +208,7 @@ class MiniCPM_V(lmms):
                     temperature=gen_kwargs["temperature"],
                     top_p=gen_kwargs["top_p"],
                     num_beams=gen_kwargs["num_beams"],
-                    max_new_tokens=gen_kwargs["max_new_tokens"],
+                    max_new_tokens=self.max_new_tokens,
                 )
             except Exception as e:
                 eval_logger.error(f"Error {e} in generating")
