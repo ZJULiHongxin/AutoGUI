@@ -39,7 +39,7 @@ model_specific_prompt_kwargs:
 model_specific_process_kwargs:
   autogui:
     scale: 100
-  autogui_plus:
+  uipro:
     scale: 100
   qwen_vl_chat:
     scale: 1000
@@ -47,3 +47,5 @@ model_specific_process_kwargs:
     scale: 1000
   slime:
     scale: 100
+  minicpm_v:
+    scale: 1000

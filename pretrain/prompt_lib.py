@@ -236,7 +236,7 @@ def apply_vlm_template(task_instruction, model_name, output_box=False):
     elif 'llava' in model_name or 'gpt' in model_name:
         # Llava-1.6 Example: "[INST] <image>\nIn this UI screenshot, what is the position of the element corresponding to the command "{}"? [/INST]"
         prompt = get_llava_prompt(is_v16='1.6' in model_name, output_box=output_box)
-    elif 'autogui_plus' in model_name:
+    elif 'uipro' in model_name:
         prompt = get_default_prompt(output_box)
         elem_desc = ' This element is used for "{}"' if not task_instruction.startswith("This element") else ' {}'
         prompt = prompt + elem_desc

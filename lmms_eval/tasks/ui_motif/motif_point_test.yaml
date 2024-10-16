@@ -36,7 +36,7 @@ process_results: !function utils_point.motif_point_process_results
 model_specific_process_kwargs:
   autogui:
     scale: 100
-  autogui_plus:
+  uipro:
     scale: 100
   qwen_vl_chat:
     scale: 1000
@@ -44,6 +44,8 @@ model_specific_process_kwargs:
     scale: 1000
   slime:
     scale: 100
+  minicpm_v:
+    scale: 1000
 metric_list: # extract the value according to the metric: "key". Thus, the process_results should output the {key1: , key2: ...}
   - metric: motif_gnd_result
     aggregation: !function utils_point.motif_gnd_result

@@ -10,20 +10,18 @@ from accelerate.state import AcceleratorState
 from typing import List, Optional, Union, Tuple
 from transformers import LlavaForConditionalGeneration, AutoProcessor
 
-import sys
-sys.path.append(os.path.join(os.path.dirname(__file__)))
-from slime_utils.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
-from slime_utils.conversation import conv_templates, SeparatorStyle
-from slime_utils.model.builder import load_pretrained_model
-from slime_utils.utils import disable_torch_init
-from slime_utils.mm_utils import tokenizer_image_token, process_images, get_model_name_from_path
+from uipro.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
+from uipro.conversation import conv_templates, SeparatorStyle
+from uipro.model.builder import load_pretrained_model
+from uipro.utils import disable_torch_init
+from uipro.mm_utils import tokenizer_image_token, process_images, get_model_name_from_path
 from torch.utils.data import Dataset, DataLoader
 
 from PIL import Image
 from colorama import Fore, Style
 
-@register_model("autogui_plus")
-class AutoGUIPlus(lmms):
+@register_model("uipro")
+class UIPro(lmms):
     def __init__(
         self,
         pretrained: str = '',
@@ -56,7 +54,7 @@ class AutoGUIPlus(lmms):
         model_name = get_model_name_from_path(pretrained)
 
         print(f"Loading model from {pretrained}")
-        self._tokenizer, self._model, self._image_processor, context_len = load_pretrained_model(pretrained, model_base, model_name, use_flash_attn=True, topp=topp)
+        self._tokenizer, self._model, self._image_processor, context_len = load_pretrained_model(pretrained, model_base, model_name, use_flash_attn=True)
 
         self._config = self._model.config
         self.batch_size_per_gpu = int(batch_size)
@@ -98,7 +96,7 @@ class AutoGUIPlus(lmms):
             self.conv_mode = 'llama3'
         elif 'vicuna' in pretrained.lower():
             self.conv_mode = 'vicuna_v1'
-        elif 'gemma' in pretrained.lower():
+        elif 'gemma' in pretrained.lower() or 'gem2' in pretrained.lower():
             self.conv_mode = 'gemma'
 
     @property
@@ -241,6 +239,7 @@ class AutoGUIPlus(lmms):
             input_ids = tokenizer_image_token(prompt, self.tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).to(device=self.model.device)
 
             try:
+                # print(input_ids.device, self.model.device, img_tensor.device)
                 cont = self.model.generate(
                     input_ids,
                     images=img_tensor,

@@ -4,7 +4,7 @@ from torch.nn.init import trunc_normal_
 import numpy as np
 import math
 from torch.nn import functional as F
-from slime_utils.model.multimodal_resampler.sampler import Resampler, Merger, ResamplerWithText, MplugDocOwlHReducerModel
+from slime_utils.model.multimodal_resampler.sampler import Resampler, CAbstractor, MplugDocOwlHReducerModel, MultiCompressor
 
 def get_1d_sincos_pos_embed_from_grid(embed_dim, pos):
     """
@@ -242,24 +242,26 @@ class TextGuidedSampler(nn.Module):
         else:
             self.selector = None
         
-        if projector_type == 'merger':
-            self.post_qformer = Merger(
-                        grid_size=self.grid_size,
-                        embed_dim = config.mm_hidden_size,
-                        llm_hidden_size=config.hidden_size,
-                    )
-        elif projector_type == 'instructblip':
-            self.post_qformer = ResamplerWithText(
-                        grid_size=self.grid_size,
-                        embed_dim = config.mm_hidden_size,
-                        num_heads = config.mm_hidden_size // 128,
-                        kv_dim=config.mm_hidden_size,
-                        llm_hidden_size=config.hidden_size,
+        if projector_type == 'Cabs':
+            self.post_qformer = CAbstractor(
+                        num_queries=self.grid_size**2,
+                        embed_dim=config.mm_hidden_size,
+                        output_hidden_size=config.hidden_size,
                     )
         elif projector_type == 'h-reducer':
             self.post_qformer = MplugDocOwlHReducerModel(
                         embed_dim = config.mm_hidden_size
                     )
+        elif projector_type.startswith('multi'):
+            self.post_qformer = MultiCompressor(
+                combination=projector_type,
+                grid_size=self.grid_size,
+                            embed_dim = config.mm_hidden_size,
+                            num_heads = config.mm_hidden_size // 128,
+                            kv_dim=config.mm_hidden_size,
+                            llm_hidden_size=config.hidden_size,
+                            aggr_type=config.compressor_aggr_type
+            )
         else:
             self.post_qformer = Resampler(
                             grid_size=self.grid_size,
@@ -268,7 +270,7 @@ class TextGuidedSampler(nn.Module):
                             kv_dim=config.mm_hidden_size,
                             llm_hidden_size=config.hidden_size,
                         )
-            
+
         
     def forward(self, local_f, text_embedding, attn_mask=None):
         

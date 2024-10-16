@@ -2,7 +2,7 @@ import os, traceback
 
 AVAILABLE_MODELS = {
     "autogui": "AutoGUI",
-    'autogui_plus': "AutoGUIPlus",
+    'uipro': "UIPro",
     "llava_model": "Llava",
     "llava_hf": "LlavaHf",
     "llava_sglang": "LlavaSglang",

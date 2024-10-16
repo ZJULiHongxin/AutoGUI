@@ -55,7 +55,7 @@ model_specific_prompt_kwargs:
 model_specific_process_kwargs:
   autogui:
     scale: 100
-  autogui_plus:
+  uipro:
     scale: 100
   qwen_vl_chat:
     scale: 1000

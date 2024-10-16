@@ -6,11 +6,11 @@
 import math
 from functools import partial
 import numpy as np
+import pdb
 import torch
 from torch import nn
 from torch.nn import functional as F
 from torch.nn.init import trunc_normal_, normal_
-# from bert_utils import BertConfig, BertLMHeadModel
 
 class IdentityMap(nn.Module):
     def __init__(self, hiiden, **kwargs):
@@ -87,41 +87,6 @@ def get_1d_sincos_pos_embed_from_grid(embed_dim, pos):
     emb = np.concatenate([emb_sin, emb_cos], axis=1)  # (M, D)
     return emb
 
-# class IntructBLIPResampler(nn.Module):
-#     def __init__(self, num_queries, embed_dim, cross_attention_freq=2):
-#         super().__init__()
-#         self.module_type = 'insturctblip'
-#         encoder_config = BertConfig.from_pretrained("bert-base-uncased")
-#         encoder_config.encoder_width = embed_dim
-#         # insert cross-attention layer every other block
-#         encoder_config.add_cross_attention = True
-#         encoder_config.cross_attention_freq = cross_attention_freq
-#         encoder_config.query_length = num_queries
-#         self.Qformer = BertLMHeadModel.from_pretrained(
-#             "bert-base-uncased", config=encoder_config
-#         )
-#         self.query_tokens = nn.Parameter(
-#             torch.zeros(1, num_queries, encoder_config.hidden_size)
-#         )
-#         self.query_tokens.data.normal_(mean=0.0, std=encoder_config.initializer_range) #0.02
-
-#     def forward(self, text_input_ids, text_attn_mask, image_embs, image_mask):
-#         query_atts = torch.ones(self.query_tokens.size()[:-1], dtype=torch.long).to(image_embs.device)
-#         Qformer_atts = torch.cat([query_atts, text_attn_mask],dim=1)
-
-#         query_tokens = self.query_tokens.expand(image_embs.shape[0], -1, -1)
-
-#         query_output = self.Qformer.bert(
-#             text_input_ids,
-#             attention_mask=Qformer_atts,
-#             query_embeds=query_tokens,
-#             encoder_hidden_states=image_embs,
-#             encoder_attention_mask=image_mask,
-#             return_dict=True,
-#         )
-
-#         query_output = query_output.last_hidden_state[:,:query_tokens.size(1),:]
-#         return query_output
 
 class Resampler(nn.Module):
     """
@@ -269,24 +234,24 @@ class ResamplerWithText(nn.Module):
             
         pos_embed = get_abs_pos(self.pos_embed.detach(), tgt_size).detach()
         
-        N = x.shape[0] # #patches
+        N = x.shape[0]
         
         text = self.kv_proj(text)
         text = self.ln_kv(text)
         
-        text, x, attn_mask = text.permute(1, 0, 2).repeat(1,N,1), x.permute(1, 0, 2), attn_mask.repeat(N,1)
+        text, x = text.permute(1, 0, 2), x.permute(1, 0, 2)
         
         query = self._repeat(self.query, N)
 
-        concate_query_text = torch.cat([query, text], dim=0)
-        concate_attn_mask = torch.cat([torch.zeros((N, self.num_queries), dtype=attn_mask.dtype, device=attn_mask.device) , ~attn_mask], dim=-1).bool()
-        concate_query_text = self.self_attn(
-            concate_query_text,
-            concate_query_text,
-            concate_query_text, 
-            key_padding_mask=concate_attn_mask)[0]
+        contate_query_text = torch.cat([query, text], dim=0)
+        contate_attn_mask = torch.cat([torch.zeros((N, self.num_queries), dtype=attn_mask.dtype, device=attn_mask.device) , ~attn_mask], dim=-1).bool()
+        contate_query_text = self.self_attn(
+            contate_query_text,
+            contate_query_text,
+            contate_query_text, 
+            key_padding_mask=contate_attn_mask)[0]
         
-        query = concate_query_text[:self.query.shape[0]]
+        query = contate_query_text[:self.query.shape[0]]
         query = self.ln_q(query)
         
         out = self.attn(
@@ -298,46 +263,6 @@ class ResamplerWithText(nn.Module):
         x = self.ln_post(x)
         x = self.proj(x)
         return x
-
-    def _repeat(self, query, N: int):
-        return query.unsqueeze(1).repeat(1, N, 1)
-
-class Merger(nn.Module):
-    """
-    InternLM
-    """
-
-    def __init__(
-            self,
-            grid_size,
-            embed_dim,
-            llm_hidden_size=4096
-    ):
-        super().__init__()
-        self.module_type = 'merger'
-        self.patch_size = int((576 / grid_size ** 2) ** 0.5)
-        self.grid_size = grid_size
-        self.embed_dim = embed_dim
-        self.llm_hidden_size = llm_hidden_size
-        modules = [nn.Linear(embed_dim * self.patch_size * self.patch_size, embed_dim)]
-        self.projection = nn.Sequential(*modules)
-
-    def forward(self, x):
-        # x: B x 576 (#tokens) x 1024
-        if len(x.shape) <= 2:
-            x = x.unsqueeze(0)
-            mark=True
-        else:
-            mark=False
-        
-        B, NUM_PATCHES, DIM = x.shape
-        num_patches = int(NUM_PATCHES ** 0.5)
-        
-        x = x.reshape(B, num_patches, num_patches, DIM).unfold(1, self.patch_size, 2).unfold(2, self.patch_size, 2) # B x num_patches_H x num_patches_W x DIM x 2 x 2
-
-        x = self.projection(x.reshape(B, -1, DIM * self.patch_size * self.patch_size))
-
-        return x if not mark else x.squeeze()
 
     def _repeat(self, query, N: int):
         return query.unsqueeze(1).repeat(1, N, 1)
@@ -394,4 +319,241 @@ class MplugDocOwlHReducerModel(nn.Module):
         sequence_output = sequence_output.flatten(2).transpose(1, 2)  # B,C,H/conv_shape[0],W/(conv_shape[1]) -> B,C,L/conv_patch -> B,L/conv_patch,C
         sequence_output = sequence_output.transpose(0, 1).contiguous() # L/conv_patch, B, C
 
-        return sequence_output   
+        return sequence_output
+
+class Merger(nn.Module):
+    """
+    InternLM
+    """
+
+    def __init__(
+            self,
+            grid_size,
+            embed_dim,
+            llm_hidden_size=4096
+    ):
+        super().__init__()
+        self.module_type = 'merger'
+        self.patch_size = int((576 / grid_size ** 2) ** 0.5)
+        self.grid_size = grid_size
+        self.embed_dim = embed_dim
+        self.llm_hidden_size = llm_hidden_size
+        modules = [nn.Linear(embed_dim * self.patch_size * self.patch_size, embed_dim)]
+        self.projection = nn.Sequential(*modules)
+
+    def forward(self, x):
+        # x: B x 576 (#tokens) x 1024
+        if len(x.shape) <= 2:
+            x = x.unsqueeze(0)
+            mark=True
+        else:
+            mark=False
+        
+        B, NUM_PATCHES, DIM = x.shape
+        num_patches = int(NUM_PATCHES ** 0.5)
+        
+        # Refer to https://huggingface.co/internlm/internlm-xcomposer2-4khd-7b/blob/a2c222ebd3a723c3dff00232e4f5cc6429f472d1/build_mlp.py#L102
+        x = x.reshape(B,num_patches,num_patches,DIM).reshape(B,num_patches//2,2,num_patches//2,2,DIM).contiguous().permute(0,1,3,2,4,5).reshape(B,num_patches//2,num_patches//2,4*DIM).flatten(1,2).contiguous()
+        # reshape(B, num_patches, num_patches, DIM).unfold(1, self.patch_size, 2).unfold(2, self.patch_size, 2).reshape(B, -1, DIM * self.patch_size * self.patch_size) # B x num_patches_H x num_patches_W x DIM x 2 x 2
+
+        x = self.projection(x)
+
+        return x if not mark else x.squeeze()
+
+    def _repeat(self, query, N: int):
+        return query.unsqueeze(1).repeat(1, N, 1)
+
+class MultiCompressor(nn.Module):
+    def __init__(
+            self,
+            combination, # ='multi_resampler_h-reducer',
+            grid_size,
+            embed_dim,
+            num_heads,
+            kv_dim=None,
+            llm_hidden_size=4096,
+            norm_layer=partial(nn.LayerNorm, eps=1e-6),
+            use_post_proj=False,
+            aggr_type: str = 'avg'
+    ):
+        super().__init__()
+        self.module_type = 'multi_compressor'
+        self.projector_list = []
+        self.combination = combination.split('_')[1:] # 'multi_resampler_h-reducer'
+        for module_type in self.combination:
+            module_type = module_type.lower()
+            if module_type == 'resampler':
+                self.projector_list.append(Resampler(grid_size, embed_dim, num_heads, kv_dim, llm_hidden_size, norm_layer, use_post_proj))
+            elif module_type == 'h-reducer':
+                self.projector_list.append(MplugDocOwlHReducerModel(embed_dim))
+            elif module_type == 'merger':
+                self.projector_list.append(Merger(embed_dim))
+
+        self.projector_list = nn.ModuleList(self.projector_list)
+        
+        self.aggr_type = aggr_type # 'concat'
+            
+    def aggregate(self, features_all_compressors: list):
+        B = len(features_all_compressors[0])
+
+        if self.aggr_type == 'concat':
+            aggr_results = [torch.cat([features_all_compressors[comp_idx][batch_idx] for comp_idx in range(len(features_all_compressors))], dim=0) for batch_idx in range(B)]
+        elif self.aggr_type == 'avg':
+            aggr_results = [torch.mean(torch.stack([features_all_compressors[comp_idx][batch_idx] for comp_idx in range(len(features_all_compressors))]), dim=0) for batch_idx in range(B)]
+            
+        return aggr_results
+
+def build_pos_embeds(
+    num_input_tokens: int, vision_hidden_size: int, use_posemb: bool = True
+):
+    # pos emb
+    if use_posemb:
+        pos_emb = torch.nn.Parameter(torch.zeros(1, num_input_tokens, vision_hidden_size))
+        nn.init.trunc_normal_(pos_emb, mean=0.0, std=0.02)
+    else:
+        pos_emb = None
+
+    return pos_emb
+
+
+def build_eos_tokens(num_eos_tokens, output_hidden_size: int):
+    # think tokens
+    if num_eos_tokens:
+        eos_tokens = torch.nn.Parameter(torch.randn(1, num_eos_tokens, output_hidden_size))
+        nn.init.trunc_normal_(eos_tokens, mean=0.0, std=0.02)
+    else:
+        eos_tokens = None
+
+    return eos_tokens
+
+
+def build_prenorm(encoder_hidden_size, use_prenorm=False):
+    if use_prenorm:
+        prenorm = LayerNorm(encoder_hidden_size)
+    else:
+        prenorm = None
+    return prenorm
+
+class Projector(nn.Module):
+    """Base projector class"""
+
+    def __init__(
+        self,
+        num_queries: int,
+        embed_dim: int,
+        output_hidden_size: int, # llm_hidden_size
+        num_eos_tokens: int = 0,
+        use_posemb: bool = True,
+        use_prenorm: bool = False,
+        vit_num_input_tokens: int=576
+    ):
+        super().__init__()
+        self.num_queries = num_queries
+        self.num_input_tokens = vit_num_input_tokens
+
+        self.encoder_hidden_size = embed_dim
+        self.hidden_size = embed_dim
+        self.output_hidden_size = output_hidden_size
+
+        # think tokens
+        self.eos_tokens = build_eos_tokens(num_eos_tokens, output_hidden_size)
+
+        # pos emb
+        self.pos_emb = build_pos_embeds(self.num_input_tokens, embed_dim, use_posemb=use_posemb)
+
+        self.prenorm = build_prenorm(embed_dim, use_prenorm)
+
+        self.build_net()
+
+    def build_net(self):
+        raise NotImplementedError()
+
+    def _forward(self, x):
+        raise NotImplementedError()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x: (B, L, encoder_hidden_size) tensor from the visual backbone (CLIP visual encoder),
+                including cls token.
+        """
+        if self.prenorm is not None:
+            x = self.prenorm(x)
+
+        if self.pos_emb is not None:
+            x_with_pos_emb = x + self.pos_emb
+
+        x = self._forward(x_with_pos_emb)  # (B, L, output_hidden_size)
+
+        B = x.size(0)
+        if self.eos_tokens is not None:
+            x = torch.cat([x, self.eos_tokens.expand(B, -1, -1)], dim=1)
+
+        return x
+    
+    # def _load_from_state_dict(self, state_dict, *args, **kwargs):
+    #     # update old ckpt compatible with current code
+    #     pos_emb = state_dict["abstractor.pos_emb"]
+    #     if pos_emb.size(1) == self.pos_emb.size(1) + 1:
+    #         # remove obsolete first pos emb (for cls token originally)
+    #         state_dict["abstractor.pos_emb"] = pos_emb[:, 1:]
+
+    #     super()._load_from_state_dict(state_dict, *args, **kwargs)
+
+def build_mlp(depth: int, hidden_size: int, output_hidden_size: int):
+    layers = [nn.Linear(hidden_size, output_hidden_size)]
+    for _ in range(1, depth):
+        layers.append(nn.SiLU())
+        layers.append(nn.Linear(output_hidden_size, output_hidden_size))
+    return nn.Sequential(*layers)
+
+class ConvProjector(Projector):
+    def _forward(self, x):
+        # x: [B, L, dim]
+        hw = int(x.size(1) ** 0.5)
+        x = rearrange(x, "b (h w) d -> b d h w", h=hw, w=hw)
+        x = self.net(x)
+        x = rearrange(x, "b d h w -> b (h w) d")
+        x = self.readout(x)
+        print('cabs')
+        return x
+
+from timm.models.regnet import RegStage
+from timm.models.layers import LayerNorm, LayerNorm2d
+
+class CAbstractor(ConvProjector):
+    """C-Abstractor based on RegBlock"""
+    def build_net(self):
+        self.module_type = 'Cabs'
+        depth = 1
+        mlp_depth = 2
+
+        assert (self.num_queries ** 0.5).is_integer(), "n_queries must be square number"
+        hw = int(self.num_queries ** 0.5)
+
+        RegBlock = partial(
+            RegStage,
+            stride=1,
+            dilation=1,
+            act_layer=nn.SiLU,
+            norm_layer=LayerNorm2d,
+        )
+
+        s1 = RegBlock(
+            depth,
+            self.encoder_hidden_size,
+            self.hidden_size // 2, # 为了保持和Qformer一样的参数量（4499456）
+        )
+        sampler = nn.AdaptiveAvgPool2d((hw, hw))
+        s2 = RegBlock(
+            depth,
+            self.hidden_size // 2,
+            self.hidden_size,
+        )
+
+        if depth:
+            self.net = nn.Sequential(s1, sampler, s2)
+            self.readout = nn.Identity()#build_mlp(mlp_depth, self.hidden_size, self.output_hidden_size)
+        else:
+            self.net = sampler
+            self.readout = nn.Identity()#build_mlp(mlp_depth, self.encoder_hidden_size, self.output_hidden_size)
