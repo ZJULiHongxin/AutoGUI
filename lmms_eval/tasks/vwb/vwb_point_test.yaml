@@ -12,6 +12,10 @@ metadata:
 model_specific_prompt_kwargs:
   autogui:
     format: random
+  uipro:
+    format: uipro
+    post_prompt: |
+      I want to {goal_info}. Please locate the target element I should interact with. (with point)
   seeclick:
     format: seeclick
     post_prompt: |

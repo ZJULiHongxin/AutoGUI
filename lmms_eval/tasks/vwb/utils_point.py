@@ -72,7 +72,7 @@ def vwb_doc_to_text(doc, model_name='', model_specific_prompt_kwargs=None):
             prompt
     '''
 
-    instruc = doc["detailed_elem_desc"]
+    instruc = doc["elem_desc"] if doc['task'] == 'elem-gnd' else doc["detailed_elem_desc"]
     pre_prompt = ""
     post_prompt = ""
 
@@ -86,6 +86,9 @@ def vwb_doc_to_text(doc, model_name='', model_specific_prompt_kwargs=None):
             if "pre_prompt" in model_specific_prompt_kwargs:
                 pre_prompt = model_specific_prompt_kwargs["pre_prompt"]
             if "post_prompt" in model_specific_prompt_kwargs:
+                if model_name == 'uipro' and doc['task'] == 'elem-gnd':
+                    model_specific_prompt_kwargs["post_prompt"] = "What is the text written on this UI element at {goal_info} (with point)?"
+
                 post_prompt = model_specific_prompt_kwargs["post_prompt"].format(goal_info=instruc)
             
             prompt = f"{pre_prompt}{post_prompt}"
