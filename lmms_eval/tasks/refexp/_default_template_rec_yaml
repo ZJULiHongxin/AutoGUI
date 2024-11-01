@@ -22,6 +22,10 @@ model_specific_prompt_kwargs:
     format: seeclick
     post_prompt: |
       In the UI, where should I click if I want to complete instruction "{goal_info}" (with point)?
+  uipro:
+    format: uipro
+    post_prompt: |
+      I want to {goal_info}. Please locate the target element I should interact with. (with point)
   qwen_vl_chat:
     format: qwen_vl_chat
     post_prompt: |
