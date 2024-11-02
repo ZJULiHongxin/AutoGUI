@@ -87,7 +87,7 @@ def vwb_doc_to_text(doc, model_name='', model_specific_prompt_kwargs=None):
                 pre_prompt = model_specific_prompt_kwargs["pre_prompt"]
             if "post_prompt" in model_specific_prompt_kwargs:
                 if model_name == 'uipro' and doc['task'] == 'elem-gnd':
-                    model_specific_prompt_kwargs["post_prompt"] = "What is the text written on this UI element at {goal_info} (with point)?"
+                    model_specific_prompt_kwargs["post_prompt"] = "Locate the text \"{goal_info}\". (with point)"
 
                 post_prompt = model_specific_prompt_kwargs["post_prompt"].format(goal_info=instruc)
             

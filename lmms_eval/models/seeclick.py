@@ -256,14 +256,14 @@ class SeeClick(lmms):
             if "num_beams" not in gen_kwargs:
                 gen_kwargs["num_beams"] = 1
             if "do_sample" not in gen_kwargs:
-                gen_kwargs["do_sample"] = True
+                gen_kwargs["do_sample"] = False
             # https://huggingface.co/cckevinn/SeeClick/blob/main/generation_config.json
             gen_kwargs["chat_format"] = "chatml"
             gen_kwargs["eos_token_id"] = 151643
             gen_kwargs["max_window_size"] = 1024
             gen_kwargs["pad_token_id"] = 151643
             gen_kwargs["top_k"] = 0
-            gen_kwargs["transformers_version"] = "4.36.2"
+            # gen_kwargs["transformers_version"] = "4.36.2"
             # eval_logger.info(f"Using gen_kwargs: {gen_kwargs}")
 
             # pad_token_id = self.tokenizer.pad_token_id if self.tokenizer.pad_token_id is not None else self.tokenizer.eod_id

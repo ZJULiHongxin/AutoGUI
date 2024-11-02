@@ -1,0 +1,4 @@
+group: aitw
+task: aitw_test
+include: _default_template_planning_yaml
+test_split: test

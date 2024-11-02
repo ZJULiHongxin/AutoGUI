@@ -57,8 +57,8 @@
                 // "--main_process_port=14343",
                 "-m", "lmms_eval",
                 "--model", "seeclick", // seeclick, qwen_vl_chat deepseek_vl_chat
-                "--model_args", "pretrained=cckevinn/SeeClick",
-                "--tasks", "vwb", // func_pred_rec, screenspot_rec, motif
+                "--model_args", "pretrained=/mnt/nvme1n1p1/hf_models/models--seeclick",
+                "--tasks", "aitw", // func_pred_rec, screenspot_rec, motif
                 "--batch_size", "1",
                 "--log_samples",
                 "--log_samples_suffix", "test",
@@ -151,6 +151,32 @@
                 },
         },
         {
+            "name": "eval-minicpmv",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--num_processes=1",
+                // "--gpu_ids", "0",
+                "--main_process_port=16849",
+                "-m", "lmms_eval",
+                "--model_args", "pretrained=/mnt/nvme1n1p1/hongxin_li/hf_home/hub/models--openbmb--MiniCPM-V-2_6/snapshots/4e4be000cd81feda8b96d14b53f1791b4010b038", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--tasks", "screenspot_rec", // func_pred_rec,screenspot_rec,motif,vwb,refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "test",
+                "--output_path", "./logs/",
+                "--limit", "0.05"
+                // "--verbosity", "DEBUG"
+                ],
+                // "env": {
+                //     "CUDA_VISIBLE_DEVICES": "5",
+                // },
+        },
+        {
             "name": "eval-slime",
             "type": "debugpy",
             "request": "launch",
@@ -163,14 +189,40 @@
                 // "--gpu_ids", "0",
                 "--main_process_port=16849",
                 "-m", "lmms_eval",
-                "--model", "slime", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
-                "--model_args", "pretrained=yifanzhang114--SliME-Llama3-8B,device_map=auto",
-                "--tasks", "func_pred_rec", // func_pred_rec, screenspot_rec, motif, vwb, refexp
+                "--model", "uipro", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--model_args", "pretrained=/mnt/nvme0n1p1/hongxin_li/highres_autogui/checkpoints/1030_SliME-Gemma-1p1-2B_5MBoxQAs+SimpUI5p3M+UIPro18p6M/checkpoint-16328,device_map=auto",
+                "--tasks", "func_pred_rec,screenspot_rec,motif,vwb,refexp", // func_pred_rec,screenspot_rec,motif,vwb,refexp
                 "--batch_size", "1",
                 "--log_samples",
                 "--log_samples_suffix", "test",
                 "--output_path", "./logs/",
-                "--limit", "0.05"
+                "--limit", "0.005"
+                // "--verbosity", "DEBUG"
+                ],
+                // "env": {
+                //     "CUDA_VISIBLE_DEVICES": "5",
+                // },
+        },
+        {
+            "name": "eval-gpt4o-mini",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--num_processes=1",
+                // "--gpu_ids", "0",
+                "--main_process_port=16849",
+                "-m", "lmms_eval",
+                "--model", "gpt4v", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--tasks", "vwb", // func_pred_rec,screenspot_rec,motif,vwb,refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "test",
+                "--output_path", "./logs/",
+                "--limit", "0.008"
                 // "--verbosity", "DEBUG"
                 ],
                 // "env": {

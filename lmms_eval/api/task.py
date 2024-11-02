@@ -61,6 +61,7 @@ class TaskConfig(dict):
     dataset_path: str = None
     dataset_name: str = None
     dataset_kwargs: dict = None
+    image_dir: str = None # specify local image directory
     training_split: str = None
     validation_split: str = None
     test_split: str = None
@@ -932,6 +933,8 @@ class ConfigurableTask(Task):
             return [doc[self.config.doc_to_visual]]
         else:
             assert callable(self.config.doc_to_visual)
+            image_dir = getattr(self.config, 'image_dir', '')
+            if image_dir: doc['image_dir'] = image_dir
             return self.config.doc_to_visual(doc)
 
     def doc_to_choice(self, doc: Any) -> List[str]:
