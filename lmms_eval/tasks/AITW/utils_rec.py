@@ -133,6 +133,7 @@ def aitw_process_result(doc, result, model_specific_process_kwargs=None):
     action_acc = click_acc = swipe_acc = text_acc = home_acc = back_acc = enter_acc = complete_acc = infeasible_acc = False
     click_num = swipe_num = input_text_num = home_num = back_num = enter_num = complete_num = infeasible_num = 0
 
+    ann_positions = step.pop("annot_position")
     if not wrong_format:
         model_name = model_specific_process_kwargs.get('model', '').lower()
 
@@ -147,7 +148,7 @@ def aitw_process_result(doc, result, model_specific_process_kwargs=None):
             pred_action_type=pred_action_type,
             pred_action_attr=pred_action_attr,
             annotation_positions=np.array(
-                    [step["annot_position"][i:i + 4] for i in range(0, len(step["annot_position"]), 4)])
+                    [ann_positions[i:i + 4] for i in range(0, len(ann_positions), 4)])
             )
         
         action_acc = action_matching_result[2]
@@ -170,7 +171,7 @@ def aitw_process_result(doc, result, model_specific_process_kwargs=None):
             enter_num, enter_acc = enter_num + 1, action_acc
             enter_num += 1
 
-    data_dict = {"prompt": result[0]["prompt"], "response": result[0]["response"], 'pred_acion': {'action_type':pred_action_type, 'attr': pred_action_attr}, 'gt_action': {'action_type': ref_action_type, 'attr': ref_action_attr}, STEP_SR: action_acc, ACTIONTYPE_ACC: action_matching_result[1], "action_match_details": {CLICK_ACC: click_acc, SWIPE_ACC: swipe_acc, TEXT_ACC: text_acc, ENTER_ACC: enter_acc, HOME_ACC: home_acc, BACK_ACC: back_acc, COMPLETE_ACC: complete_acc, INFEASIBLE_ACC: infeasible_acc, WRONG_FORMAT: wrong_format}, "action_counts": {CLICK_ACC: click_num, SWIPE_ACC: swipe_num, TEXT_ACC: input_text_num, ENTER_ACC: enter_num, HOME_ACC: home_num, BACK_ACC: back_num, COMPLETE_ACC: complete_num, INFEASIBLE_ACC: infeasible_num}}
+    data_dict = {"step_info": step, "prompt": result[0]["prompt"], "response": result[0]["response"], 'scenario': doc['image'].split('/')[0], 'pred_acion': {'action_type':pred_action_type, 'attr': pred_action_attr}, 'gt_action': {'action_type': ref_action_type, 'attr': ref_action_attr}, STEP_SR: action_acc, ACTIONTYPE_ACC: action_matching_result[1], "action_match_details": {CLICK_ACC: click_acc, SWIPE_ACC: swipe_acc, TEXT_ACC: text_acc, ENTER_ACC: enter_acc, HOME_ACC: home_acc, BACK_ACC: back_acc, COMPLETE_ACC: complete_acc, INFEASIBLE_ACC: infeasible_acc, WRONG_FORMAT: wrong_format}, "action_counts": {CLICK_ACC: click_num, SWIPE_ACC: swipe_num, TEXT_ACC: input_text_num, ENTER_ACC: enter_num, HOME_ACC: home_num, BACK_ACC: back_num, COMPLETE_ACC: complete_num, INFEASIBLE_ACC: infeasible_num}}
     return {AITW_METRIC: data_dict}
 
 def aggr_aitw_performance(results):
@@ -189,15 +190,24 @@ def aggr_aitw_performance(results):
     result_str = []
     
     # global metric
-    num_samples = len(results)
-    corr_action = sum([x[STEP_SR] for x in results])
-    ratio = corr_action / num_samples if num_samples > 0 else 0.0
-    result_str.append(f'{STEP_SR}: {ratio:.4f} ({corr_action} / {num_samples})')
+    scenario_metrics = {}
+    for scenario in ['average', 'general', 'install', 'googleapps', 'single', 'webshopping']:
+        scenario_metrics[f'{scenario}-stepsr'] = [0,0]
+        scenario_metrics[f'{scenario}-action_type'] = [0,0]
     
-    corr_action_type = sum([x[ACTIONTYPE_ACC] for x in results])
-    ratio = corr_action_type / num_samples if num_samples > 0 else 0.0
-    result_str.append(f'{ACTIONTYPE_ACC}: {ratio:.4f} ({corr_action_type} / {num_samples})')
+    for result in results:
+        is_action_corr, is_actiontype_corr = result[STEP_SR], result[ACTIONTYPE_ACC]
+        scenario_metrics['average-stepsr'][0] += is_action_corr; scenario_metrics['average-stepsr'][1] += 1
+        scenario_metrics['average-action_type'][0] += is_actiontype_corr; scenario_metrics['average-action_type'][1] += 1
+        
+        scenario = result['scenario']
+        scenario_metrics[f'{scenario}-stepsr'][0] += is_action_corr; scenario_metrics[f'{scenario}-stepsr'][1] += 1
+        scenario_metrics[f'{scenario}-action_type'][0] += is_actiontype_corr; scenario_metrics[f'{scenario}-action_type'][1] += 1
 
+    for k, metric in scenario_metrics.items():
+        ratio = metric[1] / metric[0] if metric[0] > 0 else 0.0
+        result_str.append(f'{k}: {ratio:.4f} ({metric[0]} / {metric[1]})')
+    
     # detailed metrics
     for k in AITW_METRICS:
         corr_num = sum([x['action_match_details'][k] for x in results])
