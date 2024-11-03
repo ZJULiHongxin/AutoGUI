@@ -125,7 +125,9 @@ def aitw_process_result(doc, result, model_specific_process_kwargs=None):
     ref_action_type, ref_action_attr = action_2_format(step)
     
     try:
-        raw_action_pred = ast.literal_eval(result[0]["response"])
+        response = result[0]["response"]
+        response = response[response.rfind('{"'):]
+        raw_action_pred = ast.literal_eval(response)
         wrong_format = False
     except:
         wrong_format = True
@@ -205,7 +207,7 @@ def aggr_aitw_performance(results):
         scenario_metrics[f'{scenario}-action_type'][0] += is_actiontype_corr; scenario_metrics[f'{scenario}-action_type'][1] += 1
 
     for k, metric in scenario_metrics.items():
-        ratio = metric[1] / metric[0] if metric[0] > 0 else 0.0
+        ratio = metric[0] / metric[1] if metric[1] > 0 else 0.0
         result_str.append(f'{k}: {ratio:.4f} ({metric[0]} / {metric[1]})')
     
     # detailed metrics

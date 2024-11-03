@@ -250,7 +250,7 @@ def check_actions_match(
         )
         return ['click', True, taps_match]
     elif ref_action_type == 'input_text':
-        gt_text, pred_text = ref_action_attr['text'], pred_action_attr['text']
+        gt_text, pred_text = ref_action_attr['text'].lower(), pred_action_attr['text'].lower() # AITW先把字符串lower再匹配
         text_match =  (gt_text == pred_text) or (
                             gt_text in pred_text) or (
                             pred_text in gt_text)
@@ -351,6 +351,6 @@ def pred_2_format_autogui(action_pred, scale):
     elif action_type == 'input_text':
         attr = {'text': action_pred['text'].lower()}
     elif action_type == 'status':
-        attr = {'status': action_pred['status']}        
+        attr = {'status': action_pred['status']}
 
     return action_type, attr
