@@ -354,6 +354,6 @@ def pred_2_format_autogui(action_pred, scale):
     elif action_type == 'input_text':
         attr = {'text': action_pred['text'].lower()}
     elif action_type == 'status':
-        attr = {'status': action_pred['status']}
+        attr = {'status': action_pred['goal_status']}
 
     return action_type, attr
