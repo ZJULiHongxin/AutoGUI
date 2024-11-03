@@ -158,16 +158,19 @@ def _check_tap_actions_match(
     annotation_height_augment_fraction,
 ):
   """Determines if two tap actions are the same."""
-  resized_annotation_positions = _resize_annotation_bounding_boxes(
-      annotation_positions,
-      annotation_width_augment_fraction,
-      annotation_height_augment_fraction,
-  )
+  both_in_box = False
+  
+  if len(annotation_positions):
+    resized_annotation_positions = _resize_annotation_bounding_boxes(
+        annotation_positions,
+        annotation_width_augment_fraction,
+        annotation_height_augment_fraction,
+    )
 
-  # Check if the ground truth tap action falls in an annotation's bounding box.
-  tap1_in_box = _yx_in_bounding_boxes(tap_1_yx, resized_annotation_positions)
-  tap2_in_box = _yx_in_bounding_boxes(tap_2_yx, resized_annotation_positions)
-  both_in_box = jnp.max(tap1_in_box & tap2_in_box)
+    # Check if the ground truth tap action falls in an annotation's bounding box.
+    tap1_in_box = _yx_in_bounding_boxes(tap_1_yx, resized_annotation_positions)
+    tap2_in_box = _yx_in_bounding_boxes(tap_2_yx, resized_annotation_positions)
+    both_in_box = jnp.max(tap1_in_box & tap2_in_box)
 
   # If the ground-truth tap action falls outside any of the annotation
   # bounding boxes or one of the actions is inside a bounding box and the other
@@ -237,7 +240,7 @@ def check_actions_match(
     Returns:
         A boolean representing whether the two given actions are the same or not.
     """
-    if ref_action_type != pred_action_type: return [ref_action_type, False, False]
+    if ref_action_type != pred_action_type: return [ref_action_type, False, False] # gt action type, action type match, action match
     
     if ref_action_type == 'click':
         taps_match = _check_tap_actions_match(
@@ -264,7 +267,7 @@ def check_actions_match(
         status_match = ref_action_attr['goal_status'] == pred_action_attr['goal_status']
         return ['swipe', True, status_match and answer_match]
     else:
-        return ['swipe', True, True]
+        return [ref_action_type, True, True]
 
 def action_2_format(step_data):
     # 把test数据集中的动作格式转换为计算matching score的格式
