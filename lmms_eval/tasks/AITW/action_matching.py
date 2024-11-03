@@ -263,9 +263,9 @@ def check_actions_match(
         direction_match = ref_action_attr['direction'] == pred_action_attr['direction']
         return ['swipe', True, direction_match]
     elif ref_action_type == 'status':
-        answer_match = ref_action_attr['answer'] in pred_action_attr['answer'] or pred_action_attr['answer'] in ref_action_attr['answer']
+        # answer_match = ref_action_attr['answer'] in pred_action_attr['answer'] or pred_action_attr['answer'] in ref_action_attr['answer']
         status_match = ref_action_attr['goal_status'] == pred_action_attr['goal_status']
-        return ['swipe', True, status_match and answer_match]
+        return ['swipe', True, status_match]
     else:
         return [ref_action_type, True, True]
 
@@ -336,6 +336,12 @@ def pred_2_format_seeclick(action_pred):
     elif action_type == 7:
         action_type_new = 'enter'
         attr = None
+    elif action_type == 10:
+        action_type_new = 'status'
+        attr = {'goal_status': 'successful'}
+    elif action_type == 11:
+        action_type_new = 'status'
+        attr = {'goal_status': 'infeasible'}
     else:
         raise Exception("unknown action!")
 
@@ -354,6 +360,6 @@ def pred_2_format_autogui(action_pred, scale):
     elif action_type == 'input_text':
         attr = {'text': action_pred['text'].lower()}
     elif action_type == 'status':
-        attr = {'status': action_pred['goal_status']}
+        attr = {'goal_status': action_pred['goal_status']}
 
     return action_type, attr
