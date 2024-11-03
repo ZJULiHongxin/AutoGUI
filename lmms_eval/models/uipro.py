@@ -9,7 +9,7 @@ from accelerate import Accelerator, DistributedType
 from accelerate.state import AcceleratorState
 from typing import List, Optional, Union, Tuple
 from transformers import LlavaForConditionalGeneration, AutoProcessor
-
+from transformers import StoppingCriteria
 from uipro.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
 from uipro.conversation import conv_templates, SeparatorStyle
 from uipro.model.builder import load_pretrained_model
@@ -237,7 +237,15 @@ class UIPro(lmms):
             img_tensor = process_images(visuals, self._image_processor, self._model.config).to(dtype=self.model.dtype, device=self.model.device)
             
             input_ids = tokenizer_image_token(prompt, self.tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).to(device=self.model.device)
+            
+            class EosListStoppingCriteria(StoppingCriteria):
+                def __init__(self, eos_sequence = [108]):
+                    self.eos_sequence = eos_sequence
 
+                def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> bool:
+                    last_ids = input_ids[:,-len(self.eos_sequence):].tolist()
+                    return self.eos_sequence in last_ids
+    
             try:
                 # print(input_ids.device, self.model.device, img_tensor.device)
                 cont = self.model.generate(
@@ -250,14 +258,15 @@ class UIPro(lmms):
                     num_beams=gen_kwargs["num_beams"],
                     max_new_tokens=self.max_new_tokens,
                     use_cache=self.use_cache,
+                    stopping_criteria = [EosListStoppingCriteria()]
                 )
             except Exception as e:
                 traceback.print_exc()
                 print(f"Error {e} in generating")
                 cont = ""
-            text_outputs = self.tokenizer.batch_decode(cont, skip_special_tokens=True)[0]
+            text_outputs = self.tokenizer.batch_decode(cont, skip_special_tokens=True)[0].strip()
 
-            if (hasattr(self, "accelerator") and self.accelerator.is_main_process or not hasattr(self, "accelerator") is None) and doc_id[0] % 5 == 0:
+            if (hasattr(self, "accelerator") and self.accelerator.is_main_process or not hasattr(self, "accelerator") is None) and doc_id[0] % 2 == 0:
                 print(f"Generated text for doc ID {doc_id[0]}:")
                 print(Fore.CYAN + f"prompt: {context}")
                 print(Fore.YELLOW + f"response:{text_outputs}\n" + Style.RESET_ALL)
