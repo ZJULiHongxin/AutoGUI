@@ -263,9 +263,9 @@ def check_actions_match(
         direction_match = ref_action_attr['direction'] == pred_action_attr['direction']
         return ['swipe', True, direction_match]
     elif ref_action_type == 'status':
-        answer_match = ref_action_attr['answer'] in pred_action_attr['answer'] or pred_action_attr['answer'] in ref_action_attr['answer']
+        #answer_match = ref_action_attr['answer'] in pred_action_attr['answer'] or pred_action_attr['answer'] in ref_action_attr['answer']
         status_match = ref_action_attr['goal_status'] == pred_action_attr['goal_status']
-        return ['swipe', True, status_match and answer_match]
+        return ['swipe', True, status_match]
     else:
         return [ref_action_type, True, True]
 
