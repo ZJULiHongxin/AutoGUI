@@ -1,5 +1,5 @@
 dataset_path: HongxinLi/AITW_test
-image_dir: /mnt/vdb1/hongxin.li/AITW/aitw_images
+image_dir: /data0/jingran/workspace/UI_training_data/AITW/aitw_images
 output_type: generate_until
 doc_to_visual: !function utils_rec.aitw_doc_to_visual
 doc_to_text: !function utils_rec.aitw_doc_to_text
@@ -12,7 +12,7 @@ generation_kwargs:
   max_new_tokens: 32
 process_results: !function utils_rec.aitw_process_result
 metric_list:
-  - metric: Center_ACC
+  - metric: AITW_METRIC
     aggregation : !function utils_rec.aggr_aitw_performance
     higher_is_better : true
 metadata:
@@ -39,6 +39,8 @@ model_specific_prompt_kwargs:
     post_prompt: |
       Instruction: {goal_info}.
 model_specific_process_kwargs:
+  seeclick:
+    scale: 1
   autogui:
     scale: 100
   uipro:

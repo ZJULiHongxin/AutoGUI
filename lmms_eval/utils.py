@@ -412,25 +412,31 @@ def make_table(result_dict, column: str = "results"):
             m, _, f = mf.partition(",")
             if m.endswith("_stderr"):
                 continue
-
-            points = "N/A"
-            if v is not None:
-                if 0 <= v <= 1:
-                    v *= 100
-                points = "%.4f" % v
-
-            if m + "_stderr" + "," + f in dic:
-                if v is None:
-                    se = "N/A"
-                else:
-                    se = dic[m + "_stderr" + "," + f]
-                if se != "N/A":
-                    se = "%.4f" % se
-                values.append([k, version, f, n, m, points, "±", se])
+            
+            if isinstance(v, str):
+                for metric_item in v.split('\n'):
+                    m, points = metric_item.split(': ')
+                    values.append([k, version, f, n, m, points, "±", "N/A"])
+                points = v
             else:
-                values.append([k, version, f, n, m, points, "", ""])
-            k = ""
-            version = ""
+                points = "N/A"
+                if v is not None:
+                    if 0 <= v <= 1:
+                        v *= 100
+                    points = "%.4f" % v
+
+                if m + "_stderr" + "," + f in dic:
+                    if v is None:
+                        se = "N/A"
+                    else:
+                        se = dic[m + "_stderr" + "," + f]
+                    if se != "N/A":
+                        se = "%.4f" % se
+                    values.append([k, version, f, n, m, points, "±", se])
+                else:
+                    values.append([k, version, f, n, m, points, "", ""])
+                k = ""
+                version = ""
     md_writer.value_matrix = values
     latex_writer.value_matrix = values
 

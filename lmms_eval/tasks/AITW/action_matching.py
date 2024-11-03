@@ -237,12 +237,12 @@ def check_actions_match(
     Returns:
         A boolean representing whether the two given actions are the same or not.
     """
-    if ref_action_type != pred_action_type: return [None, False, False]
+    if ref_action_type != pred_action_type: return [ref_action_type, False, False]
     
     if ref_action_type == 'click':
         taps_match = _check_tap_actions_match(
-            ref_action_attr['attr']['target'],
-            pred_action_attr['attr']['target'],
+            ref_action_attr['target'],
+            pred_action_attr['target'],
             annotation_positions,
             tap_distance_threshold,
             annotation_width_augment_fraction,
@@ -250,18 +250,21 @@ def check_actions_match(
         )
         return ['click', True, taps_match]
     elif ref_action_type == 'input_text':
-        gt_text, pred_text = ref_action_attr['attr']['text'], pred_action_attr['attr']['text']
+        gt_text, pred_text = ref_action_attr['text'], pred_action_attr['text']
         text_match =  (gt_text == pred_text) or (
                             gt_text in pred_text) or (
                             pred_text in gt_text)
         
         return ['input_text', True, text_match]
     elif ref_action_type == 'swipe':
-        direction_match = ref_action_attr['attr']['direction'] == pred_action_attr['attr']['direction']
-        
+        direction_match = ref_action_attr['direction'] == pred_action_attr['direction']
         return ['swipe', True, direction_match]
+    elif ref_action_type == 'status':
+        answer_match = ref_action_attr['answer'] in pred_action_attr['answer'] or pred_action_attr['answer'] in ref_action_attr['answer']
+        status_match = ref_action_attr['goal_status'] == pred_action_attr['goal_status']
+        return ['swipe', True, status_match and answer_match]
     else:
-        raise Exception('invalid')
+        return ['swipe', True, True]
 
 def action_2_format(step_data):
     # 把test数据集中的动作格式转换为计算matching score的格式
@@ -269,38 +272,34 @@ def action_2_format(step_data):
 
     if action_type == 4:
         if step_data["action_type_text"] == 'click':  # 点击
-            touch_point = step_data["touch"]
-            lift_point = step_data["lift"]
+            action_type = 'click'
+            attr = {'target': step_data["touch"]}
         else:  # 上下左右滑动
-            if step_data["action_type_text"] == 'scroll down':
-                touch_point = [0.5, 0.8]
-                lift_point = [0.5, 0.2]
-            elif step_data["action_type_text"] == 'scroll up':
-                touch_point = [0.5, 0.2]
-                lift_point = [0.5, 0.8]
-            elif step_data["action_type_text"] == 'scroll left':
-                touch_point = [0.2, 0.5]
-                lift_point = [0.8, 0.5]
-            elif step_data["action_type_text"] == 'scroll right':
-                touch_point = [0.8, 0.5]
-                lift_point = [0.2, 0.5]
-    else:
-        touch_point = [-1.0, -1.0]
-        lift_point = [-1.0, -1.0]
-
-    if action_type == 3:
-        typed_text = step_data["type_text"]
+            direction = step_data["action_addition"].split()[-1]
+            action_type = 'swipe'
+            attr = {'direction': direction}
+    elif action_type == 3:
+        action_type = 'input_text'
+        attr = {'text': step_data['type_text']}
+    elif action_type == 5:
+        action_type = 'navigate_back'
+        attr = None
+    elif action_type == 6:
+        action_type = 'navigate_home'
+        attr = None
+    elif action_type == 7:
+        action_type = 'enter'
+        attr = None
+    elif action_type == 10:
+        action_type = 'status'
+        attr = {'goal_status': 'successful', 'answer': ''}
+    elif action_type == 11:
+        action_type = 'status'
+        attr = {'goal_status': 'infeasible', 'answer': ''}
     else:
         typed_text = ""
 
-    action = {"action_type": action_type, "touch_point": touch_point, "lift_point": lift_point,
-              "typed_text": typed_text}
-
-    action["touch_point"] = [action["touch_point"][1], action["touch_point"][0]]
-    action["lift_point"] = [action["lift_point"][1], action["lift_point"][0]]
-    action["typed_text"] = action["typed_text"].lower()
-
-    return action
+    return action_type, attr
 
 
 def pred_2_format_seeclick(action_pred):
@@ -309,7 +308,7 @@ def pred_2_format_seeclick(action_pred):
 
     if action_type == 4:  # 点击
         action_type_new = 'click'
-        attr = {'target': action_pred["target"]}
+        attr = {'target': action_pred["click_point"]}
     elif action_type == 0: # swipe up/down/left/right are assigned the ids 1, 0, 8, and 9 respectively.
         action_type_new = 'swipe'
         attr = {'direction': 'up'}
@@ -325,19 +324,28 @@ def pred_2_format_seeclick(action_pred):
     elif action_type == 3:
         action_type_new = 'input_text'
         attr = {'text': action_pred['typed_text'].lower()}
+    elif action_type == 5:
+        action_type_new = 'navigate_back'
+        attr = None
+    elif action_type == 6:
+        action_type_new = 'navigate_home'
+        attr = None
+    elif action_type == 7:
+        action_type_new = 'enter'
+        attr = None
     else:
         raise Exception("unknown action!")
 
-    return action_type, attr
+    return action_type_new, attr
 
 
-def pred_2_format_autogui(action_pred):
+def pred_2_format_autogui(action_pred, scale):
     # 把模型输出的内容转换为计算action_matching的格式
     action_type = action_pred["action_type"]
 
     attr = {}
     if action_type == 'click':  # 点击
-        attr = {'target': action_pred["target"]}
+        attr = {'target': list(map(lambda x: x / scale, action_pred["target"]))}
     elif action_type == 'swipe': # swipe up/down/left/right are assigned the ids 1, 0, 8, and 9 respectively.
         attr = {'direction': action_pred['direction']}
     elif action_type == 'input_text':

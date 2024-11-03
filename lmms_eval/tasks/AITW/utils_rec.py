@@ -14,9 +14,14 @@ ACTIONTYPE_ACC = "action_type_acc"
 CLICK_ACC = "click_acc"
 TEXT_ACC = "text_acc"
 SWIPE_ACC = "swipe_acc"
-WRONG_FORMAT_RATIO = "wrong_format"
-AITW_METRICS = [STEP_SR, ACTIONTYPE_ACC, CLICK_ACC, TEXT_ACC, SWIPE_ACC, WRONG_FORMAT_RATIO]
-
+ENTER_ACC = "enter_acc"
+HOME_ACC = "home_acc"
+BACK_ACC = "back_acc"
+COMPLETE_ACC = "complete_acc"
+INFEASIBLE_ACC = "infeasible_acc"
+WRONG_FORMAT = "wrong_format"
+AITW_METRICS = [CLICK_ACC, TEXT_ACC, SWIPE_ACC, ENTER_ACC, HOME_ACC, BACK_ACC, COMPLETE_ACC, INFEASIBLE_ACC]
+AITW_METRIC = "AITW_METRIC"
 
 
 def aitw_doc_to_visual(doc):
@@ -115,17 +120,18 @@ def aitw_process_result(doc, result, model_specific_process_kwargs=None):
         a dictionary with key: metric name, value: metric value
     """
     step = doc['step']
-    action_ref = action_2_format(step, scale=scale)
+    
+    scale = model_specific_process_kwargs.get("scale", 1) if model_specific_process_kwargs is not None else 1
+    ref_action_type, ref_action_attr = action_2_format(step)
     
     try:
         raw_action_pred = ast.literal_eval(result[0]["response"])
-        ref_action_type = raw_action_pred.pop('action_type')
-        ref_action_attr = raw_action_pred
         wrong_format = False
     except:
         wrong_format = True
 
-    action_acc = click_acc = swipe_acc = text_acc = False
+    action_acc = click_acc = swipe_acc = text_acc = home_acc = back_acc = enter_acc = complete_acc = infeasible_acc = False
+    click_num = swipe_num = input_text_num = home_num = back_num = enter_num = complete_num = infeasible_num = 0
 
     if not wrong_format:
         model_name = model_specific_process_kwargs.get('model', '').lower()
@@ -133,29 +139,41 @@ def aitw_process_result(doc, result, model_specific_process_kwargs=None):
         if model_name == 'seeclick':
             pred_action_type, pred_action_attr = pred_2_format_seeclick(raw_action_pred)
         elif model_name in ['autogui', 'uipro']:
-            pred_action_type, pred_action_attr  = pred_2_format_autogui(raw_action_pred)
+            pred_action_type, pred_action_attr  = pred_2_format_autogui(raw_action_pred, scale=scale)
 
-        scale = model_specific_process_kwargs.get("scale", 1) if model_specific_process_kwargs is not None else 1
-        
         action_matching_result = check_actions_match(
             ref_action_type=ref_action_type,
             ref_action_attr=ref_action_attr,
             pred_action_type=pred_action_type,
             pred_action_attr=pred_action_attr,
-            annotation_positions=step['annotations']
+            annotation_positions=np.array(
+                    [step["annot_position"][i:i + 4] for i in range(0, len(step["annot_position"]), 4)])
             )
         
+        action_acc = action_matching_result[2]
         if action_matching_result[0] == 'click':
-            action_acc = click_acc = action_matching_result[2]
+            click_num, click_acc = click_num + 1, action_acc
         elif action_matching_result[0] == 'swipe':
-            action_acc = swipe_acc = action_matching_result[2]
+            swipe_num, swipe_acc = swipe_num + 1, action_acc
         elif action_matching_result[0] == 'input_text':
-            action_acc = text_acc = action_matching_result[2]
+            input_text_num, text_acc = input_text_num + 1, action_acc
+        elif action_matching_result[0] == 'navigate_home':
+            home_num, home_acc = home_num + 1, action_acc
+        elif action_matching_result[0] == 'navigate_back':
+            back_num, back_acc = back_num + 1, action_acc
+        elif action_matching_result[0] == 'status':
+            if ref_action_attr['goal_status'] == 'successful':
+                complete_num, complete_acc = complete_num + 1, action_acc
+            else:
+                infeasible_num, infeasible_acc = infeasible_num + 1, action_acc
+        elif action_matching_result[0] == 'enter':
+            enter_num, enter_acc = enter_num + 1, action_acc
+            enter_num += 1
 
-    data_dict = {"prompt": result[0]["prompt"], "response": result[0]["response"], STEP_SR: action_acc, ACTIONTYPE_ACC: action_matching_result[1], CLICK_ACC: click_acc, SWIPE_ACC: swipe_acc, TEXT_ACC: text_acc, WRONG_FORMAT_RATIO: wrong_format}
-    return {metric: data_dict for metric in AITW_METRICS}
+    data_dict = {"prompt": result[0]["prompt"], "response": result[0]["response"], 'pred_acion': {'action_type':pred_action_type, 'attr': pred_action_attr}, 'gt_action': {'action_type': ref_action_type, 'attr': ref_action_attr}, STEP_SR: action_acc, ACTIONTYPE_ACC: action_matching_result[1], "action_match_details": {CLICK_ACC: click_acc, SWIPE_ACC: swipe_acc, TEXT_ACC: text_acc, ENTER_ACC: enter_acc, HOME_ACC: home_acc, BACK_ACC: back_acc, COMPLETE_ACC: complete_acc, INFEASIBLE_ACC: infeasible_acc, WRONG_FORMAT: wrong_format}, "action_counts": {CLICK_ACC: click_num, SWIPE_ACC: swipe_num, TEXT_ACC: input_text_num, ENTER_ACC: enter_num, HOME_ACC: home_num, BACK_ACC: back_num, COMPLETE_ACC: complete_num, INFEASIBLE_ACC: infeasible_num}}
+    return {AITW_METRIC: data_dict}
 
-def aggr_aitw_performance(results, metric):
+def aggr_aitw_performance(results):
     """
     Aggregate the results of the screenspot evaluation task using the specified metric.
 
@@ -169,8 +187,23 @@ def aggr_aitw_performance(results, metric):
     num_samples = len(results)
     
     result_str = []
+    
+    # global metric
+    num_samples = len(results)
+    corr_action = sum([x[STEP_SR] for x in results])
+    ratio = corr_action / num_samples if num_samples > 0 else 0.0
+    result_str.append(f'{STEP_SR}: {ratio:.4f} ({corr_action} / {num_samples})')
+    
+    corr_action_type = sum([x[ACTIONTYPE_ACC] for x in results])
+    ratio = corr_action_type / num_samples if num_samples > 0 else 0.0
+    result_str.append(f'{ACTIONTYPE_ACC}: {ratio:.4f} ({corr_action_type} / {num_samples})')
+
+    # detailed metrics
     for k in AITW_METRICS:
-        corr_num = sum([x[k] for x in results])
-        result_str.append(f'{k}:\t{corr_num / num_samples:.4f}\t({corr_num} / {num_samples})\n')
+        corr_num = sum([x['action_match_details'][k] for x in results])
+        num_actions = sum([x['action_counts'][k] for x in results])
+        
+        ratio = corr_num / num_actions if num_actions > 0 else 0.0
+        result_str.append(f'{k}: {ratio:.4f} ({corr_num} / {num_actions})')
 
     return '\n'.join(result_str)
