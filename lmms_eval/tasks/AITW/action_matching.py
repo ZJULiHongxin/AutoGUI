@@ -251,21 +251,21 @@ def check_actions_match(
             annotation_width_augment_fraction,
             annotation_height_augment_fraction,
         )
-        return ['click', True, taps_match]
+        return [ref_action_type, True, taps_match]
     elif ref_action_type == 'input_text':
         gt_text, pred_text = ref_action_attr['text'].lower(), pred_action_attr['text'].lower() # AITW先把字符串lower再匹配
         text_match =  (gt_text == pred_text) or (
                             gt_text in pred_text) or (
                             pred_text in gt_text)
         
-        return ['input_text', True, text_match]
+        return [ref_action_type, True, text_match]
     elif ref_action_type == 'swipe':
         direction_match = ref_action_attr['direction'] == pred_action_attr['direction']
-        return ['swipe', True, direction_match]
+        return [ref_action_type, True, direction_match]
     elif ref_action_type == 'status':
         # answer_match = ref_action_attr['answer'] in pred_action_attr['answer'] or pred_action_attr['answer'] in ref_action_attr['answer']
         status_match = ref_action_attr['goal_status'] == pred_action_attr['goal_status']
-        return ['swipe', True, status_match]
+        return [ref_action_type, True, status_match]
     else:
         return [ref_action_type, True, True]
 
