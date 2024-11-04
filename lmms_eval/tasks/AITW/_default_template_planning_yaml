@@ -24,14 +24,16 @@ model_specific_prompt_kwargs:
     format: seeclick
     post_prompt: |
       "Given the UI screenshot and previous actions, please generate the next move necessary to advance towards task completion. Task: {task}. Previous actions: {history}"
-  uipro:
+  uipro1:
     format: uipro
     post_prompt: |
       Given the UI screenshot and previous actions, please generate the next move necessary to advance towards task completion. The user task is: {task}
       Action history: {history}
       Now, think step-by-step, first describe the screenshot to get your self familiar with it, then present a detailed resoning about what to do next, and finally plan the next action to advance toward task completion using the above action list. Your planned action must follow this format:
+      Screen descrition: (describe the screen in detail)
+      Thought: (logic behind next step planning)
       Action: (action prediction in the correct JSON format)
-  uipro_cdirect:
+  uipro:
     format: uipro
     post_prompt: |
       Given the UI screenshot and previous actions, please generate the next move necessary to advance towards task completion. The user task is: {task}
