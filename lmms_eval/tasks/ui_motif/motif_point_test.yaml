@@ -20,6 +20,10 @@ model_specific_prompt_kwargs:
     format: uipro
     post_prompt: |
       I want to {goal_info}. Please locate the target element I should interact with. (with point)
+  tinyclick:
+    format: tinyclick
+    post_prompt: |
+      What to do to execute the command? click on {goal_info}
   qwen_vl_chat:
     format: qwen_vl_chat
     post_prompt: |
@@ -49,6 +53,8 @@ model_specific_process_kwargs:
   slime:
     scale: 100
   minicpm_v:
+    scale: 1000
+  tinyclick:
     scale: 1000
 metric_list: # extract the value according to the metric: "key". Thus, the process_results should output the {key1: , key2: ...}
   - metric: motif_gnd_result

@@ -22,6 +22,10 @@ model_specific_prompt_kwargs:
     format: seeclick
     post_prompt: |
       In the UI, where should I click if I want to complete instruction "{goal_info}" (with point)?
+  tinyclick:
+    format: tinyclick
+    post_prompt: |
+      What to do to execute the command? click on {goal_info}
   uipro:
     format: uipro
     post_prompt: |
@@ -52,4 +56,6 @@ model_specific_process_kwargs:
   slime:
     scale: 100
   minicpm_v:
+    scale: 1000
+  tinyclick:
     scale: 1000
