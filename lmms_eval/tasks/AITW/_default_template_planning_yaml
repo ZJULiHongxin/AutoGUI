@@ -1,5 +1,5 @@
 dataset_path: HongxinLi/AITW_test
-image_dir: /data0/jingran/workspace/UI_training_data/AITW/aitw_images
+image_dir: /mnt/vdb1/hongxin.li/AITW/aitw_images
 output_type: generate_until
 doc_to_visual: !function utils_rec.aitw_doc_to_visual
 doc_to_text: !function utils_rec.aitw_doc_to_text
@@ -9,7 +9,7 @@ dataset_kwargs:
 generation_kwargs:
   until:
     - "<|start_header_id|>assistant"
-  max_new_tokens: 32
+  max_new_tokens: 128
 process_results: !function utils_rec.aitw_process_result
 metric_list:
   - metric: AITW_METRIC
@@ -24,6 +24,26 @@ model_specific_prompt_kwargs:
     format: seeclick
     post_prompt: |
       "Given the UI screenshot and previous actions, please generate the next move necessary to advance towards task completion. Task: {task}. Previous actions: {history}"
+  uipro:
+    format: uipro
+    post_prompt: |
+      Given the UI screenshot and previous actions, please generate the next move necessary to advance towards task completion. The user task is: {task}
+      Action history: {history}
+      Now, think step-by-step, first describe the screenshot to get your self familiar with it, then present a detailed resoning about what to do next, and finally plan the next action to advance toward task completion using the above action list. Your planned action must follow this format:
+      Action: (action prediction in the correct JSON format)
+  uipro_cdirect:
+    format: uipro
+    post_prompt: |
+      Given the UI screenshot and previous actions, please generate the next move necessary to advance towards task completion. The user task is: {task}
+      Action history: {history} Now, directly plan the next action to advance toward task completion using the above action list. Your planned action must follow this format:
+      Action: (action prediction in the correct JSON format)
+  uipro_cot:
+    format: uipro
+    post_prompt: |
+      Given the UI screenshot and previous actions, please generate the next move necessary to advance towards task completion. The user task is: {task}
+      Action history: {history}
+      Now, think step-by-step, first describe the screenshot to get your self familiar with it, then present a detailed resoning about what to do next, and finally plan the next action to advance toward task completion using the above action list. Your planned action must follow this format:
+      Action: (action prediction in the correct JSON format)
   qwen_vl_chat:
     format: qwen_vl_chat
     post_prompt: |

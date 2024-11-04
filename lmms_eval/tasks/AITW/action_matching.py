@@ -276,7 +276,7 @@ def action_2_format(step_data):
     if action_type == 4:
         if step_data["action_type_text"] == 'click':  # 点击
             action_type = 'click'
-            attr = {'target': step_data["touch"]}
+            attr = {'target': step_data["touch"][::-1]} # xy -> yx aitw的标注是这种yx形式
         else:  # 上下左右滑动
             direction = step_data["action_addition"].split()[-1]
             action_type = 'swipe'
@@ -354,7 +354,7 @@ def pred_2_format_autogui(action_pred, scale):
 
     attr = {}
     if action_type == 'click':  # 点击
-        attr = {'target': list(map(lambda x: x / scale, action_pred["target"]))}
+        attr = {'target': list(map(lambda x: x / scale, action_pred["target"][::-1]))} # xy -> yx
     elif action_type == 'swipe': # swipe up/down/left/right are assigned the ids 1, 0, 8, and 9 respectively.
         attr = {'direction': action_pred['direction']}
     elif action_type == 'input_text':
