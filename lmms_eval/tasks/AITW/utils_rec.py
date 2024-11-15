@@ -131,7 +131,8 @@ def aitw_process_result(doc, result, model_specific_process_kwargs=None):
         wrong_format = False
     except:
         wrong_format = True
-
+    
+    action_matching_result = [ref_action_type, False, False]
     action_acc = click_acc = swipe_acc = text_acc = home_acc = back_acc = enter_acc = complete_acc = infeasible_acc = False
     click_num = swipe_num = input_text_num = home_num = back_num = enter_num = complete_num = infeasible_num = 0
 

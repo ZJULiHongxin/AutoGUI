@@ -20,9 +20,9 @@ def screenspot_rec_doc_to_text(doc, model_name='', model_specific_prompt_kwargs=
     instruc = doc["instruction"]
     pre_prompt = ""
     post_prompt = ""
-
+    
     if model_specific_prompt_kwargs is None:
-        prompt = apply_vlm_template(instruc, model_name)
+        prompt = apply_vlm_template(instruc, model_name, output_box=True)
     else:
         # Use random prompt templates
         if model_specific_prompt_kwargs['format'] == 'random':

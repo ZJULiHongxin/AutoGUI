@@ -19,7 +19,8 @@ AVAILABLE_MODELS = {
     "internvl_chat": "InternVLChat",
     "slime": "SLIME",
     "monkey": "Monkey",
-    "tinyclick": "TinyClick"
+    "tinyclick": "TinyClick",
+    "ferretui": "FerretUI"
 }
 
 for model_name, model_class in AVAILABLE_MODELS.items():

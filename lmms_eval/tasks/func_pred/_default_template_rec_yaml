@@ -17,6 +17,8 @@ metric_list:
 metadata:
   version: '0.0'
 model_specific_prompt_kwargs:
+  ferretui:
+    scale: 1000
   autogui:
     format: random
   tinyclick:
@@ -41,7 +43,13 @@ model_specific_prompt_kwargs:
       Generate the target element according to the UI screenshot, instruction. Please provide the answer directly (with grounding). 
     post_prompt: |
       Instruction: {goal_info}.
+  ferretui:
+    format: ferretui
+    post_prompt: |
+      Where is "{goal_info}"? Answer in [x1, y1, x2, y2] format.
 model_specific_process_kwargs:
+  ferretui:
+    scale: 1000
   autogui:
     scale: 100
   uipro:
