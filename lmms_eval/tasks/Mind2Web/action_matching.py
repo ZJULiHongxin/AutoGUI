@@ -311,7 +311,7 @@ def pred_2_format_seeclick(action_pred):
 
     if action_type == 4:  # 点击
         action_type_new = 'click'
-        attr = {'target': action_pred["click_point"][::-1]}
+        attr = {'target': action_pred["click_point"]}
     elif action_type == 0: # swipe up/down/left/right are assigned the ids 1, 0, 8, and 9 respectively.
         action_type_new = 'swipe'
         attr = {'direction': 'up'}

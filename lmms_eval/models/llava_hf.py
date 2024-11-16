@@ -78,6 +78,7 @@ class LlavaHf(lmms):
         self.chat_template = chat_template
         self.use_cache = use_cache
         self.max_new_tokens = max_new_tokens
+
         if accelerator.num_processes > 1 and device_map == "":
             assert accelerator.distributed_type in [DistributedType.FSDP, DistributedType.MULTI_GPU, DistributedType.DEEPSPEED], "Unsupported distributed type provided. Only DDP and FSDP are supported."
             # If you want to use DistributedType.DEEPSPEED, you have to run accelerate config before using the model

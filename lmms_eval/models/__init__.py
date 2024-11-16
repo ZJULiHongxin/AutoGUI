@@ -20,6 +20,8 @@ AVAILABLE_MODELS = {
     "slime": "SLIME",
     "monkey": "Monkey",
     "claude": "Claude"
+    "tinyclick": "TinyClick",
+    "ferretui": "FerretUI"
 }
 
 for model_name, model_class in AVAILABLE_MODELS.items():

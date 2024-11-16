@@ -204,6 +204,33 @@
                 // },
         },
         {
+            "name": "eval-tinyclick",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--num_processes=1",
+                // "--gpu_ids", "0",
+                "--main_process_port=16849",
+                "-m", "lmms_eval",
+                "--model", "tinyclick", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--model_args", "device_map=auto",
+                "--tasks", "func_pred_rec", // func_pred_rec,screenspot_rec,motif,vwb,refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "test",
+                "--output_path", "./logs/",
+                //"--limit", "0.005"
+                // "--verbosity", "DEBUG"
+                ],
+                // "env": {
+                //     "CUDA_VISIBLE_DEVICES": "5",
+                // },
+        },
+        {
             "name": "eval-gpt4o-mini",
             "type": "debugpy",
             "request": "launch",

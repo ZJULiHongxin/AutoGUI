@@ -22,10 +22,14 @@ model_specific_prompt_kwargs:
     format: seeclick
     post_prompt: |
       In the UI, where should I click if I want to complete instruction "{goal_info}" (with point)?
+  tinyclick:
+    format: tinyclick
+    post_prompt: |
+      What to do to execute the command? click on {goal_info}
   uipro:
     format: uipro
     post_prompt: |
-      I want to {goal_info}. Please locate the target element I should interact with. (with point)
+      I want to {goal_info}. Please locate the target element I should interact with. (with bbox)
   qwen_vl_chat:
     format: qwen_vl_chat
     post_prompt: |
@@ -40,7 +44,13 @@ model_specific_prompt_kwargs:
       Generate the target element according to the UI screenshot, instruction. Please provide the answer directly (with grounding). 
     post_prompt: |
       Instruction: {goal_info}.
+  ferretui:
+    format: ferretui
+    post_prompt: |
+      Where is "the element used to {goal_info}"?
 model_specific_process_kwargs:
+  ferretui:
+    scale: 1000
   autogui:
     scale: 100
   uipro:
@@ -52,4 +62,6 @@ model_specific_process_kwargs:
   slime:
     scale: 100
   minicpm_v:
+    scale: 1000
+  tinyclick:
     scale: 1000

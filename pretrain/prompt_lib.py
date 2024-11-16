@@ -237,7 +237,7 @@ def apply_vlm_template(task_instruction, model_name, output_box=False):
         # Llava-1.6 Example: "[INST] <image>\nIn this UI screenshot, what is the position of the element corresponding to the command "{}"? [/INST]"
         prompt = get_llava_prompt(is_v16='1.6' in model_name, output_box=output_box)
     elif 'uipro' in model_name:
-        prompt = get_default_prompt(output_box)
+        prompt = get_default_prompt(output_box=True)
         elem_desc = ' This element is used for "{}"' if not task_instruction.startswith("This element") else ' {}'
         prompt = prompt + elem_desc
     elif 'minicpm' in model_name:

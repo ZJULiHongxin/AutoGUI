@@ -19,7 +19,11 @@ model_specific_prompt_kwargs:
   uipro:
     format: uipro
     post_prompt: |
-      I want to {goal_info}. Please locate the target element I should interact with. (with point)
+      I want to {goal_info}. Please locate the target element I should interact with. (with bbox)
+  tinyclick:
+    format: tinyclick
+    post_prompt: |
+      What to do to execute the command? click on {goal_info}
   qwen_vl_chat:
     format: qwen_vl_chat
     post_prompt: |
@@ -34,10 +38,15 @@ model_specific_prompt_kwargs:
       Generate the target element according to the UI screenshot, instruction. Please provide the answer directly (with grounding). 
     post_prompt: |
       Instruction: {goal_info}.
-
+  ferretui:
+    format: ferretui
+    post_prompt: |
+      Where is the the element used to "{goal_info}"?
 process_results: !function utils_point.motif_point_process_results
 
 model_specific_process_kwargs:
+  ferretui:
+    scale: 1000
   autogui:
     scale: 100
   uipro:
@@ -49,6 +58,8 @@ model_specific_process_kwargs:
   slime:
     scale: 100
   minicpm_v:
+    scale: 1000
+  tinyclick:
     scale: 1000
 metric_list: # extract the value according to the metric: "key". Thus, the process_results should output the {key1: , key2: ...}
   - metric: motif_gnd_result
