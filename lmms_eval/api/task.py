@@ -630,10 +630,10 @@ class ConfigurableTask(Task):
         if self.model_specific_process_kwargs is not None:
             if self.model_name in self.model_specific_process_kwargs:
                 self.model_specific_process_kwargs = self.model_specific_process_kwargs[self.model_name]
+                self.model_specific_process_kwargs['model'] = self.model_name
             else:
                 self.model_specific_process_kwargs = self.model_specific_process_kwargs.get("default", None)
-            
-            self.model_specific_process_kwargs['model'] = self.model_name
+
 
     def _prepare_metric_and_aggregation(self):
         self._metric_fn_list = {}
