@@ -18,7 +18,8 @@ AVAILABLE_MODELS = {
     "seeclick": "SeeClick",
     "internvl_chat": "InternVLChat",
     "slime": "SLIME",
-    "monkey": "Monkey"
+    "monkey": "Monkey",
+    "claude": "Claude"
 }
 
 for model_name, model_class in AVAILABLE_MODELS.items():

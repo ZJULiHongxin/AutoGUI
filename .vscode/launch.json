@@ -39,9 +39,9 @@
                 // "--limit", "0.005"
                 // "--verbosity", "DEBUG"
                 ],
-                "env": {
-                    "CUDA_VISIBLE_DEVICES": "0",
-                },
+                // "env": {
+                //     "CUDA_VISIBLE_DEVICES": "0",
+                // },
         },
         {
             "name": "eval-seeclick",
@@ -57,17 +57,17 @@
                 // "--main_process_port=14343",
                 "-m", "lmms_eval",
                 "--model", "seeclick", // seeclick, qwen_vl_chat deepseek_vl_chat
-                "--model_args", "pretrained=/mnt/nvme1n1p1/hf_models/models--seeclick",
+                "--model_args", "pretrained=cckevinn/SeeClick-aitw", // Qwen/Qwen-VL-Chat
                 "--tasks", "aitw", // func_pred_rec, screenspot_rec, motif
                 "--batch_size", "1",
                 "--log_samples",
                 "--log_samples_suffix", "test",
                 "--output_path", "./logs/",
-                "--limit", "0.1"
+                //"--limit", "0.01"
                 // "--verbosity", "DEBUG"
                 ],
                 "env": {
-                    "CUDA_VISIBLE_DEVICES": "0",
+                    "CUDA_VISIBLE_DEVICES": "4",
                 },
         },
         {
@@ -196,7 +196,7 @@
                 "--log_samples",
                 "--log_samples_suffix", "test",
                 "--output_path", "./logs/",
-                "--limit", "0.005"
+                //"--limit", "0.005"
                 // "--verbosity", "DEBUG"
                 ],
                 // "env": {
@@ -216,7 +216,7 @@
                 // "--gpu_ids", "0",
                 "--main_process_port=16849",
                 "-m", "lmms_eval",
-                "--model", "gpt4v", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--model", "claude", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
                 "--tasks", "vwb", // func_pred_rec,screenspot_rec,motif,vwb,refexp
                 "--batch_size", "1",
                 "--log_samples",
