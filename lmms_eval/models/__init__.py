@@ -19,6 +19,7 @@ AVAILABLE_MODELS = {
     "internvl_chat": "InternVLChat",
     "slime": "SLIME",
     "monkey": "Monkey",
+    "claude": "Claude",
     "tinyclick": "TinyClick",
     "ferretui": "FerretUI"
 }
