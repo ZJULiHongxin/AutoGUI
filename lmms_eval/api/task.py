@@ -633,8 +633,6 @@ class ConfigurableTask(Task):
                 self.model_specific_process_kwargs['model'] = self.model_name
             else:
                 self.model_specific_process_kwargs = self.model_specific_process_kwargs.get("default", None)
-            
-            
 
     def _prepare_metric_and_aggregation(self):
         self._metric_fn_list = {}

@@ -1,4 +1,4 @@
-import torch, os
+import torch, random
 import traceback
 from tqdm import tqdm
 from lmms_eval import utils
@@ -98,6 +98,8 @@ class UIPro(lmms):
             self.conv_mode = 'vicuna_v1'
         elif 'gemma' in pretrained.lower() or 'gem2' in pretrained.lower():
             self.conv_mode = 'gemma'
+
+            self.model.generation_config.eos_token_id = 107 # '<end_of_turn>'
 
     @property
     def config(self):
@@ -239,32 +241,35 @@ class UIPro(lmms):
             input_ids = tokenizer_image_token(prompt, self.tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).to(device=self.model.device)
             
             class EosListStoppingCriteria(StoppingCriteria):
-                def __init__(self, eos_sequence = [108]):
+                def __init__(self, eos_sequence = [235270]):
                     self.eos_sequence = eos_sequence
 
                 def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> bool:
                     last_ids = input_ids[:,-len(self.eos_sequence):].tolist()
                     return self.eos_sequence in last_ids
-    
-            try:
-                # print(input_ids.device, self.model.device, img_tensor.device)
-                cont = self.model.generate(
-                    input_ids,
-                    images=img_tensor,
-                    image_sizes=gen_kwargs["image_sizes"],
-                    do_sample=True if gen_kwargs["temperature"] > 0 else False,
-                    temperature=gen_kwargs["temperature"],
-                    top_p=gen_kwargs["top_p"],
-                    num_beams=gen_kwargs["num_beams"],
-                    max_new_tokens=self.max_new_tokens,
-                    use_cache=self.use_cache,
-                    stopping_criteria = [EosListStoppingCriteria()]
-                )
-            except Exception as e:
-                traceback.print_exc()
-                print(f"Error {e} in generating")
-                cont = ""
-            text_outputs = self.tokenizer.batch_decode(cont, skip_special_tokens=True)[0].strip()
+
+            if False: #random.random() <= 0.96:
+                text_outputs = '{"action_type": "click", "target": (32,21)}'
+            else:
+                try:
+                    # print(input_ids.device, self.model.device, img_tensor.device)
+                    cont = self.model.generate(
+                        input_ids,
+                        images=img_tensor,
+                        image_sizes=gen_kwargs["image_sizes"],
+                        do_sample=True if gen_kwargs["temperature"] > 0 else False,
+                        temperature=gen_kwargs["temperature"],
+                        top_p=gen_kwargs["top_p"],
+                        num_beams=gen_kwargs["num_beams"],
+                        max_new_tokens=self.max_new_tokens,
+                        use_cache=self.use_cache,
+                       #stopping_criteria = [EosListStoppingCriteria()]
+                    )
+                except Exception as e:
+                    traceback.print_exc()
+                    print(f"Error {e} in generating")
+                    cont = ""
+                text_outputs = self.tokenizer.batch_decode(cont, skip_special_tokens=True)[0].strip()
 
             if (hasattr(self, "accelerator") and self.accelerator.is_main_process or not hasattr(self, "accelerator") is None) and doc_id[0] % 2 == 0:
                 print(f"Generated text for doc ID {doc_id[0]}:")

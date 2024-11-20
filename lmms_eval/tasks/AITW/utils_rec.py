@@ -131,7 +131,8 @@ def aitw_process_result(doc, result, model_specific_process_kwargs=None):
         wrong_format = False
     except:
         wrong_format = True
-
+    
+    action_matching_result = [ref_action_type, False, False]
     action_acc = click_acc = swipe_acc = text_acc = home_acc = back_acc = enter_acc = complete_acc = infeasible_acc = False
     click_num = swipe_num = input_text_num = home_num = back_num = enter_num = complete_num = infeasible_num = 0
 
@@ -171,7 +172,8 @@ def aitw_process_result(doc, result, model_specific_process_kwargs=None):
                 infeasible_num, infeasible_acc = infeasible_num + 1, action_acc
         elif action_matching_result[0] == 'enter':
             enter_num, enter_acc = enter_num + 1, action_acc
-
+    else: pred_action_type, pred_action_attr = None, None
+        
     data_dict = {"step_info": step, "prompt": result[0]["prompt"], "response": result[0]["response"], 'scenario': doc['image'].split('/')[0], 'pred_action': {'action_type':pred_action_type, 'attr': pred_action_attr}, 'gt_action': {'action_type': ref_action_type, 'attr': ref_action_attr}, STEP_SR: action_acc, ACTIONTYPE_ACC: action_matching_result[1], "action_match_details": {CLICK_ACC: click_acc, SWIPE_ACC: swipe_acc, TEXT_ACC: text_acc, ENTER_ACC: enter_acc, HOME_ACC: home_acc, BACK_ACC: back_acc, COMPLETE_ACC: complete_acc, INFEASIBLE_ACC: infeasible_acc, WRONG_FORMAT: wrong_format}, "action_counts": {CLICK_ACC: click_num, SWIPE_ACC: swipe_num, TEXT_ACC: input_text_num, ENTER_ACC: enter_num, HOME_ACC: home_num, BACK_ACC: back_num, COMPLETE_ACC: complete_num, INFEASIBLE_ACC: infeasible_num}}
     return {AITW_METRIC: data_dict}
 
