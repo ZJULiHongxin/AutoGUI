@@ -2,7 +2,7 @@ dataset_path: HongxinLi/MOTIF-EVAL
 generation_kwargs:
   until:
     - "ASSISTANT:"
-  max_new_tokens: 8
+  max_new_tokens: 32
   # temperature: 0
   # top_p: 0
   # num_beams: 1
