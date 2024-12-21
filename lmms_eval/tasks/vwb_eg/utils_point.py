@@ -86,8 +86,8 @@ def vwb_doc_to_text(doc, model_name='', model_specific_prompt_kwargs=None):
             if "pre_prompt" in model_specific_prompt_kwargs:
                 pre_prompt = model_specific_prompt_kwargs["pre_prompt"]
             if "post_prompt" in model_specific_prompt_kwargs:
-                if model_name == 'uipro' and doc['task'] == 'elem-gnd':
-                    model_specific_prompt_kwargs["post_prompt"] = "Locate the text \"{goal_info}\". (with bbox)"
+                # if model_name == 'uipro' and doc['task'] == 'elem-gnd':
+                #     model_specific_prompt_kwargs["post_prompt"] = "Locate the text \"{goal_info}\". (with bbox)"
 
                 post_prompt = model_specific_prompt_kwargs["post_prompt"].format(goal_info=instruc)
             
@@ -138,7 +138,7 @@ def vwb_point_process_results(doc, result, model_specific_process_kwargs=None):
     data_dict = {"prompt": result[0]["prompt"], "response": result[0]["response"],"task": doc["task"], "pred": pred, "acc": correct, 'bbox': doc['box'], 'unnormalized_box': doc['unnormalized_box']}
 
     return {
-        f"vwb_{doc['task']}_result":  data_dict,
+        f"vwb_elem-gnd_result":  data_dict,
     }
 
 def vwb_gnd_result(results):
@@ -148,7 +148,6 @@ def vwb_gnd_result(results):
     # results = grouped.agg(mean_acc='sum')
     # partial acc
     acc = []
-    eg_acc, ag_acc = [], []
     for result in results:
         acc.append(result['acc'])
         # if result['task'] == 'elem-gnd': eg_acc.append(result['acc'])
@@ -207,94 +206,3 @@ def bbox_2_bbox(bbox, dig=2):
     bbox = [f"{item:.2f}" for item in bbox]
     bbox_str = "({},{},{},{})".format(bbox[0], bbox[1], bbox[2], bbox[3])
     return bbox_str
-
-def pred_2_format_vwb(resAns, format='default'):
-    """
-    Extract action from response of VLM. 
-    
-    Args:
-        step_data (dict): The step data containing the action details.
-        
-        NOTE:
-        
-        We believe the VLM has the point localiation ability, if action type is **click or type**, we directly extract the xy position as touch and lift.
-
-    Return
-        extracted_dicts: List[Dict]
-    """
-    ANSWER_PATTERN = r'\{.*?\}'
-
-    extract_res = {}
-
-    # Try to parse the matched string as a JSON object and append to the list
-    try:
-        if format == 'default':
-            match = re.findall(ANSWER_PATTERN, resAns, re.DOTALL)
-            action = json.loads(match)
-            assert 'action_type' in action and isinstance(action['action_type'], str), f"action_type should be a string, but got {action['action_type']}"
-            if 'click' in action["action_type"]: # dual point
-                extract_res['action_type'] = 'click'
-                extract_res['typed_text'] = ''
-                extract_res['bbox'] = action['bbox']
-            elif 'type' in action["action_type"]:
-                extract_res['action_type'] = 'type'
-                extract_res['typed_text'] = action['typed_text']
-                extract_res['bbox'] = action['bbox']
-            elif 'swipe' in action["action_type"]:
-                extract_res['action_type'] = 'swipe'
-                extract_res['typed_text'] = ''
-                extract_res['bbox'] = [0.5,0.5,0.5,0.5]
-                # swipe do not have target element
-        elif format == 'seeclick':
-            action = ast.literal_eval(resAns)
-            assert 'action_type' in action and isinstance(action['action_type'], int), f"action_type should be a int, but got {action['action_type']}"
-            if action['action_type'] == simplified_action_space_dict['click']:
-                extract_res['action_type'] = 'click'
-                if len(action['click_point']) == 2:
-                    extract_res['click_point'] = action['click_point']
-                elif len(action['click_point']) == 4:
-                    extract_res['bbox'] = action['click_point']
-            elif action['action_type'] == simplified_action_space_dict['type']:
-                extract_res['action_type'] = 'type'
-                extract_res['typed_text'] = action['typed_text']
-                if 'click_point' in action:
-                    extract_res['click_point'] = action['click_point']
-                else:
-                    extract_res['click_point'] = [0.5,0.5]
-            elif action['action_type'] == [0,1,8,9]:
-                extract_res['action_type'] = 'swipe'
-                extract_res['click_point'] = [0.5,0.5]
-            else:
-                raise ValueError(f"Unknown action type in vwb: {action['action_type']}")
-        elif format =='cogagent_chat_hf': # pred format: 
-            resAns = resAns.split("Grounded Operation:")[-1]
-            if 'tap' in resAns:
-                # get point
-                extract_res['action_type'] = 'click'
-                extract_res['typed_text'] = ''
-                pattern_point = r'\[\[(\d+),(\d+)\]\]'
-                pattern_bbox = r'\[\[(\d+),(\d+),(\d+),(\d+)\]\]'
-                matches_point = re.findall(pattern_point, resAns)
-                matches_bbox = re.findall(pattern_bbox, resAns)
-                if matches_bbox:
-                    bbox = [int(num)/1000 for num in matches_bbox[0]]
-                    extract_res['bbox'] = bbox
-                elif matches_point:
-                    center = [int(num)/1000 for num in matches_point[0]]
-                    extract_res['click_point'] = center
-                else:
-                    raise ValueError(f"Unknown grounding patter: {resAns}")
-            elif 'type' in resAns:
-                extract_res['action_type'] = 'type'
-                extract_res['typed_text'] = resAns.split("typed_text:")[1].split(",")[0]
-                extract_res['bbox'] = [0.5,0.5,0.5,0.5]
-            elif 'swipe' in resAns:
-                extract_res['action_type'] = 'swipe'
-                extract_res['typed_text'] = ''
-                extract_res['bbox'] = [0.5,0.5,0.5,0.5]
-            else:
-                raise ValueError(f"Unknown action type in vwb: {resAns}")
-    except Exception as e:
-        extract_res = {"action_type": "swipe", 'typed_text': '', 'bbox': [0.5,0.5,0.5,0.5]}
-    return extract_res
-

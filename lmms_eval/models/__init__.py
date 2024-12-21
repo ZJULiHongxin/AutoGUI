@@ -1,6 +1,7 @@
 import os, traceback
 
 AVAILABLE_MODELS = {
+    "uipro_qwen2_vl": "UIPRO_Qwen2_VL",
     "autogui": "AutoGUI",
     'uipro': "UIPro",
     "llava_model": "Llava",
@@ -9,7 +10,7 @@ AVAILABLE_MODELS = {
     "qwen_vl": "Qwen_VL",
     "qwen_vl_chat": "Qwen_VL_Chat",
     "qwen2_vl": "Qwen2_VL",
-    "qwen2_vl_alicloud": "Qwen2_VL_Alicoud",
+    "qwen2_vl_cloud": "Qwen2_VL_Cloud",
     "fuyu": "Fuyu",
     "gpt4v": "GPT4V",
     "instructblip": "InstructBLIP",
@@ -21,7 +22,8 @@ AVAILABLE_MODELS = {
     "monkey": "Monkey",
     "claude": "Claude",
     "tinyclick": "TinyClick",
-    "ferretui": "FerretUI"
+    "ferretui": "FerretUI",
+    "llama_vision": "LlamaVision"
 }
 
 for model_name, model_class in AVAILABLE_MODELS.items():

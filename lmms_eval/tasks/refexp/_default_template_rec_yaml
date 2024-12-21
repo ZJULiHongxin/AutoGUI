@@ -16,6 +16,10 @@ metric_list:
 metadata:
   version: '0.0'
 model_specific_prompt_kwargs:
+  uipro_qwen2_vl:
+    format: uipro_qwen2_vl
+    post_prompt: |
+      I want to {goal_info}. Please locate the target element I should interact with. (Output the center coordinates of the target)
   autogui:
     format: random
   seeclick:
@@ -26,10 +30,6 @@ model_specific_prompt_kwargs:
     format: tinyclick
     post_prompt: |
       What to do to execute the command? click on {goal_info}
-  uipro:
-    format: uipro
-    post_prompt: |
-      I want to {goal_info}. Please locate the target element I should interact with. (with bbox)
   qwen_vl_chat:
     format: qwen_vl_chat
     post_prompt: |
@@ -49,6 +49,8 @@ model_specific_prompt_kwargs:
     post_prompt: |
       Where is "the element used to {goal_info}"?
 model_specific_process_kwargs:
+  uipro_qwen2_vl:
+    scale: 1000
   ferretui:
     scale: 1000
   autogui:
@@ -64,4 +66,6 @@ model_specific_process_kwargs:
   minicpm_v:
     scale: 1000
   tinyclick:
+    scale: 1000
+  qwen2_vl_cloud:
     scale: 1000

@@ -1,4 +1,5 @@
-dataset_path: HongxinLi/MOTIF-EVAL
+output_type: generate_until
+doc_to_target: ground_truth
 generation_kwargs:
   until:
     - "ASSISTANT:"
@@ -7,3 +8,6 @@ generation_kwargs:
   # top_p: 0
   # num_beams: 1
   # do_sample: false
+metadata:
+  - version: 0.0
+
