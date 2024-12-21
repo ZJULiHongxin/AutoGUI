@@ -17,6 +17,10 @@ metric_list:
 metadata:
   version: '0.0'
 model_specific_prompt_kwargs:
+  uipro_qwen2_vl:
+    format: uipro_qwen2_vl
+    post_prompt: |
+      Locate the element according to its detailed functionality description. {goal_info} (Output the center coordinates of the target)
   autogui:
     format: random
   tinyclick:
@@ -46,6 +50,8 @@ model_specific_prompt_kwargs:
     post_prompt: |
       Where is "{goal_info}"? Answer in [x1, y1, x2, y2] format.
 model_specific_process_kwargs:
+  uipro_qwen2_vl:
+    scale: 1000
   ferretui:
     scale: 1000
   autogui:
@@ -56,6 +62,8 @@ model_specific_process_kwargs:
     scale: 1000
   qwen2_vl:
     scale: 1
+  qwen2_vl_cloud:
+    scale: 1000
   monkey:
     scale: 1000
   slime:

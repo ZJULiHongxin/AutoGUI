@@ -1,6 +1,6 @@
-group: vwb
-dataset_path: HongxinLi/VWB-EVAL
-task: vwb_point_test
+group: vwb_ag
+dataset_path: HongxinLi/VWB-AG
+task: vwb_ag_test
 test_split: test
 include: _default_template_vwb_yaml
 output_type: generate_until
@@ -10,16 +10,16 @@ doc_to_target: !function  utils_point.vwb_doc_to_target
 metadata:
   - version: 0.0
 model_specific_prompt_kwargs:
+  uipro_qwen2_vl:
+    format: uipro_qwen2_vl
+    post_prompt: |
+      I want to {goal_info}. Please locate the target element I should interact with. (Output the center coordinates of the target)
   ferretui:
     format: ferretui
     post_prompt: |
       Provide the bounding boxes of the mentioned objects. {goal_info}
   autogui:
     format: random
-  uipro:
-    format: uipro
-    post_prompt: |
-      I want to {goal_info}. Please locate the target element I should interact with. (with bbox)
   tinyclick:
     format: tinyclick
     post_prompt: |
@@ -54,6 +54,8 @@ model_specific_prompt_kwargs:
       Where is the "{goal_info}"?
 process_results: !function utils_point.vwb_point_process_results
 model_specific_process_kwargs:
+  uipro_qwen2_vl:
+    scale: 1000
   ferretui:
     scale: 1000
   autogui:
@@ -70,12 +72,11 @@ model_specific_process_kwargs:
     scale: 1000
   tinyclick:
     scale: 1000
+  qwen2_vl_cloud:
+    scale: 1000
   llava_hf:
     scale: 100
 metric_list: # extract the value according to the metric: "key". Thus, the process_results should output the {key1: , key2: ...}
-  - metric: vwb_elem-gnd_result
-    aggregation: !function utils_point.vwb_gnd_result
-    higher_is_better: true
   - metric: vwb_action-gnd_result
     aggregation: !function utils_point.vwb_gnd_result
     higher_is_better: true

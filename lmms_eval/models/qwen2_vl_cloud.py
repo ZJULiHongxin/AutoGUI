@@ -1,4 +1,4 @@
-import  dashscope, time
+import  dashscope, time, os, base64
 import logging
 from tqdm import tqdm
 from lmms_eval.api.instance import Instance
@@ -11,7 +11,7 @@ from http import HTTPStatus
 from lmms_eval.utils import resize_image, encode_image
 from copy import deepcopy
 import warnings
-
+from openai import OpenAI
 warnings.simplefilter("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore")
 
@@ -22,8 +22,8 @@ from peft import AutoPeftModelForCausalLM
 from transformers import AutoTokenizer, AutoProcessor
 from qwen_vl_utils import process_vision_info
 
-@register_model("qwen2_vl_alicloud")
-class Qwen2_VL_Alicoud(lmms):
+@register_model("qwen2_vl_cloud")
+class Qwen2_VL_Cloud(lmms):
     """
     Qwen2_VL Model
     https://github.com/QwenLM/Qwen2-VL
@@ -31,8 +31,10 @@ class Qwen2_VL_Alicoud(lmms):
 
     def __init__(
         self,
-        model: str = "qwen-vl-max-0809",
+        model: str = "qwen-vl-max-0809", # Qwen/Qwen2-VL-72B-Instruct
         api_key: Optional[str] = "sk-",
+        server: str = 'silicon',
+        resize: int = 1288,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -40,28 +42,51 @@ class Qwen2_VL_Alicoud(lmms):
         print(f"[Qwen2_VL_Alicoud] Unexpected kwargs: {kwargs}")
 
         self.model = model
+        self.server = server
+        self.resize = resize
+
+        if 'silicon' in server:
+            self.client = OpenAI(api_key=os.environ['OPENAI_API_KEY'], base_url="https://api.siliconflow.cn/v1")
+        elif 'hyperbolic' in server:
+            self.client = OpenAI(api_key=os.environ['HYPERBOLIC_KEY'], base_url="https://api.hyperbolic.xyz/v1")
+
         dashscope.api_key = api_key
         print(Fore.YELLOW + f"Querying {model} on AliCloud" + Style.RESET_ALL)
 
-    def get_model_response(self, prompt: str, image_urls: List[str]) -> (bool, str):
+    def get_model_response(self, prompt: str, image_urls: List[str], gen_kwargs: dict) -> (bool, str):
         content = [{
-            "text": prompt
-        }]
+                "type": "text",
+                "text": prompt
+            }]
+                    
         for image_url in image_urls:
-            content.append({
-                "image_url": image_url
-            })
+            content.append(
+                {
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{image_url}"},
+                })
+            
         messages = [
             {
                 "role": "user",
                 "content": content
             }
         ]
-        response = dashscope.MultiModalConversation.call(model=self.model, messages=messages, top_p=0.15)
-        if response.status_code == HTTPStatus.OK:
-            return True, response.output.choices[0].message.content[0]["text"]
-        else:
-            return False, response.message
+        
+        if any(k in self.server for k in ['silicon', 'hyperbolic']):
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=gen_kwargs['temperature'],
+            )
+            return True, response.choices[0].message.content
+        elif 'alicloud' in self.server:
+            response = dashscope.MultiModalConversation.call(model=self.model, messages=messages, top_p=0.15)
+
+            if response.status_code == HTTPStatus.OK:
+                return True, response.output.choices[0].message.content[0]["text"]
+            else:
+                return False, response.message
 
     def flatten(self, input):
         new_list = []
@@ -72,7 +97,7 @@ class Qwen2_VL_Alicoud(lmms):
 
     def generate_until(self, requests) -> List[str]:
         res = []
-        pbar = tqdm(total=len(requests), disable=(self.rank != 0), desc="Model Responding")
+        pbar = tqdm(total=len(requests), disable=(self.rank != 0), desc=f"{self.model} Responding (resize: {self.resize})")
 
         for prompt, gen_kwargs, doc_to_visual, doc_id, task, split in [reg.args for reg in requests]:
             # encode, pad, and truncate contexts for this batch
@@ -80,11 +105,20 @@ class Qwen2_VL_Alicoud(lmms):
             visuals = self.flatten(visuals)
             
             # When there is no image token in the context, append the image to the text
+            TMP_FILE = "./qwen_tmp.png"
             
-            img_urls = []
-            for visual in visuals:
-                img = encode_image(resize_image(visual, max_size=1280))
-                img_urls.append(f"data:image/jpeg;base64,{img}")
+            if self.resize == -1:
+                resize = visuals[0].resize((224, 224))
+            elif self.resize == 0:
+                resize = visuals[0]
+            else:
+                resize = resize_image(visuals[0], max_size=self.resize)
+
+            resize.save(TMP_FILE)
+            with open(TMP_FILE, "rb") as image_file:
+                img_code = base64.b64encode(image_file.read()).decode('utf-8')
+            
+            img_urls = [img_code]
 
             if "max_new_tokens" not in gen_kwargs:
                 gen_kwargs["max_new_tokens"] = 32
@@ -100,7 +134,7 @@ class Qwen2_VL_Alicoud(lmms):
 
             for attempt in range(5):
                 try:
-                    status, content = self.get_model_response(prompt=prompt, image_urls=img_urls)
+                    status, content = self.get_model_response(prompt=prompt, image_urls=img_urls, gen_kwargs=gen_kwargs)
 
                     content = content.strip()
                     
