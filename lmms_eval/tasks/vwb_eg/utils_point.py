@@ -92,7 +92,10 @@ def vwb_doc_to_text(doc, model_name='', model_specific_prompt_kwargs=None):
                 post_prompt = model_specific_prompt_kwargs["post_prompt"].format(goal_info=instruc)
             
             prompt = f"{pre_prompt}{post_prompt}"
-    
+
+    # if model_name == 'autogui' and doc['task'] == 'action-gnd':
+    #     prompt = "I want to {goal_info}. Please locate the target element I should interact with. (with point)".format(goal_info=instruc)
+                    
     # if the we require a box-format output, the prompt should be modified accordingly
     return prompt
 

@@ -55,7 +55,7 @@ model_specific_process_kwargs:
   ferretui:
     scale: 1000
   autogui:
-    scale: 100
+    scale: 1000
   uipro:
     scale: 100
   qwen_vl_chat:
@@ -72,3 +72,5 @@ model_specific_process_kwargs:
     scale: 1000
   tinyclick:
     scale: 1000
+  llava_hf:
+    scale: 100
