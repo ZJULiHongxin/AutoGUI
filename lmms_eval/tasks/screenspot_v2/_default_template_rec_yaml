@@ -1,0 +1,93 @@
+dataset_path: HongxinLi/ScreenSpot_v2
+output_type: generate_until
+doc_to_visual: !function utils_rec.screenspot_rec_doc_to_visual
+doc_to_text: !function utils_rec.screenspot_rec_doc_to_text
+doc_to_target: "bbox"
+generation_kwargs:
+  until:
+    - "ASSISTANT:"
+process_results: !function utils_rec.screenspot_rec_process_result
+metric_list:
+  - metric: screenspot_IoU
+    aggregation : !function utils_rec.screenspot_rec_iou
+    higher_is_better : true
+  - metric: screenspot_ACC@0.1
+    aggregation : !function utils_rec.screenspot_rec_acc01
+    higher_is_better : true
+  - metric: screenspot_ACC@0.3
+    aggregation : !function utils_rec.screenspot_rec_acc03
+    higher_is_better : true
+  - metric: screenspot_ACC@0.5
+    aggregation : !function utils_rec.screenspot_rec_acc05
+    higher_is_better : true
+  - metric: screenspot_ACC@0.7
+    aggregation : !function utils_rec.screenspot_rec_acc07
+    higher_is_better : true
+  - metric: screenspot_ACC@0.9
+    aggregation : !function utils_rec.screenspot_rec_acc09
+    higher_is_better : true
+  - metric: screenspot_Center_ACC
+    aggregation : !function utils_rec.screenspot_rec_center_acc
+    higher_is_better : true
+metadata:
+  version: '0.0'
+model_specific_prompt_kwargs:
+  uipro_qwen2_vl:
+    format: uipro_qwen2_vl
+    post_prompt: |
+      I want to {goal_info}. Please locate the target element I should interact with. (Output the center coordinates of the target)
+  autogui:
+    format: random
+  uipro:
+    format: uipro
+    post_prompt: |
+      I want to {goal_info}. Please locate the target element I should interact with. (with bbox)
+  tinyclick:
+    format: tinyclick
+    post_prompt: |
+      What to do to execute the command? click on {goal_info}
+  seeclick:
+    format: seeclick
+    post_prompt: |
+      In the UI, where should I click if I want to complete instruction "{goal_info}" (with point)?
+  qwen_vl_chat:
+    format: qwen_vl_chat
+    post_prompt: |
+      What are the bounding box coordinates of the element corresponding to the command "{goal_info}" in this UI screenshot?
+  slime:
+    format: qwen_vl_chat
+    post_prompt: |
+      What are the bounding box coordinates of the element corresponding to the command "{goal_info}" in this UI screenshot?
+  ferretui:
+    format: ferretui
+    post_prompt: |
+      Where is the "{goal_info}"?
+  cogagent_chat_hf:
+    format: cogagent_chat_hf
+    pre_prompt: |
+      Generate the target element according to the UI screenshot, instruction. Please provide the answer directly (with grounding). 
+    post_prompt: |
+      Instruction: {goal_info}.
+model_specific_process_kwargs:
+  ferretui:
+    scale: 1000
+  autogui:
+    scale: 1000
+  uipro:
+    scale: 100
+  uipro_qwen2_vl:
+    scale: 1000
+  qwen_vl_chat:
+    scale: 1000
+  qwen2_vl:
+    scale: 1
+  monkey:
+    scale: 1000
+  slime:
+    scale: 100
+  minicpm_v:
+    scale: 1000
+  tinyclick:
+    scale: 1000
+  llava_hf:
+    scale: 100
