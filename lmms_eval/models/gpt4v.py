@@ -38,7 +38,7 @@ elif API_TYPE == "azure":
 class GPT4V(lmms):
     def __init__(
         self,
-        model_version: str = "gpt-4o-mini",
+        model_version: str = "gpt-4o",
         **kwargs,
     ) -> None:
         super().__init__()

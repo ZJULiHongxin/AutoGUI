@@ -5,7 +5,8 @@ from tqdm import tqdm
 import requests as url_requests
 import time
 import logging
-
+import http.client
+import json
 from lmms_eval.api.instance import Instance
 from lmms_eval.api.model import lmms
 from lmms_eval.api.registry import register_model
@@ -38,7 +39,7 @@ elif API_TYPE == "azure":
 class Claude(lmms):
     def __init__(
         self,
-        model_version: str = "claude-3-5-sonnet-20241022",
+        model_version: str = "claude-3-5-sonnet-20240620",
         **kwargs,
     ) -> None:
         super().__init__()
@@ -104,10 +105,18 @@ class Claude(lmms):
 
             for attempt in range(5):
                 try:
-                    response = url_requests.post(API_URL, headers=headers, json=payload, timeout=20)
-                    response_data = response.json()
+                    conn = http.client.HTTPSConnection("xiaoai.plus")
+                    headers = {
+                    'Authorization': f'Bearer {API_KEY}',
+                    'Content-Type': 'application/json'
+                    }
+                    conn.request("POST", "/v1/chat/completions", json.dumps(payload), headers)
+                    response = conn.getresponse()
+                    response_raw = response.read()
+                    response_data = eval(response_raw.decode("utf-8"))
 
                     content = response_data["choices"][0]["message"]["content"].strip()
+                    assert 'any' not in content
                     break  # If successful, break out of the loop
 
                 except Exception as e:

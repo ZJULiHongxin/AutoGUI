@@ -1,11 +1,11 @@
 deepspeed --include "localhost:0,1,2,3,4,5,6,7" --master_port 14223 finetune/finetune.py \
     --model_name_or_path Qwen/Qwen-VL-Chat \
     --qwen_path Qwen/Qwen-VL-Chat \
-    --data_path /mnt/nvme0n1p1/hongxin_li/UI_training_data/scaling_exp/WidgetCaptioning_processed/Qwen_data/WidgetCaptioning_202k_qwen.json \
+    --data_path /mnt/nvme0n1p1/hongxin_li/UI_training_data/raw/funcpred/20241019_fourSimpleTasks/funcpred_simpletasks_654k_closeloop_openloop_visapperance_125k_onlyGnd63k.json \
     --bf16 True \
     --fix_vit False \
-    --output_dir /mnt/vdb1/hongxin_li/autogui_ckpt/1127_QwenVL_WidCap202k \
-    --num_train_epochs 1 \
+    --output_dir ./checkpoints/1205_QwenVL_125kVisApperance_onlyGnd \
+    --num_train_epochs 2 \
     --per_device_train_batch_size 2 \
     --per_device_eval_batch_size 1 \
     --gradient_accumulation_steps 8 \
