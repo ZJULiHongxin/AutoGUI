@@ -15,11 +15,9 @@ model_specific_prompt_kwargs:
     post_prompt: |
       Provide the bounding boxes of the mentioned objects. {goal_info}
   autogui:
-    format: random
-  uipro:
-    format: uipro
+    format: autogui
     post_prompt: |
-      I want to {goal_info}. Please locate the target element I should interact with. (with bbox)
+      Where is the "{goal_info}" element (with point)?
   tinyclick:
     format: tinyclick
     post_prompt: |

@@ -18,7 +18,9 @@ metadata:
   version: '0.0'
 model_specific_prompt_kwargs:
   autogui:
-    format: random
+    format: autogui
+    post_prompt: |
+      Where is the "{goal_info}" element (with point)?
   tinyclick:
     format: tinyclick
     post_prompt: |

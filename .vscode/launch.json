@@ -110,7 +110,7 @@
                 // "--main_process_port=14343",
                 "-m", "lmms_eval",
                 "--model", "autogui", // seeclick, qwen_vl_chat deepseek_vl_chat
-                "--model_args", "pretrained=/data0/jingran/workspace/hongxin_li/seeclick_exp/checkpoints/seeclick_scaling_funcpred625k_llava150k_cauldron197k_refGnd_resample_v2/final",
+                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/autogui_ckpt/1127_QwenVL_WidCap-ElemGnd101k",
                 "--tasks", "func_pred_rec,screenspot_rec,motif,vwb,refexp", // func_pred_rec,screenspot_rec,motif,vwb,refexp
                 "--batch_size", "1",
                 "--log_samples",

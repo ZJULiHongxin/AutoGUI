@@ -1,17 +1,16 @@
 deepspeed --include "localhost:0,1,2,3,4,5,6,7" --master_port 14223 finetune/finetune.py \
     --model_name_or_path Qwen/Qwen-VL-Chat \
     --qwen_path Qwen/Qwen-VL-Chat \
-    --data_path path/to/all_data.json \
+    --data_path /mnt/nvme0n1p1/hongxin_li/UI_training_data/scaling_exp/WidgetCaptioning_processed/Qwen_data/WidgetCaptioning_202k_qwen.json \
     --bf16 True \
     --fix_vit False \
-    --output_dir ./checkpoints/xxx \
+    --output_dir /mnt/vdb1/hongxin_li/autogui_ckpt/1127_QwenVL_WidCap202k \
     --num_train_epochs 1 \
-    --per_device_train_batch_size 4 \
+    --per_device_train_batch_size 2 \
     --per_device_eval_batch_size 1 \
-    --gradient_accumulation_steps 4 \
+    --gradient_accumulation_steps 8 \
     --evaluation_strategy "no" \
-    --save_strategy "steps" \
-    --save_steps 400 \
+    --save_strategy "epoch" \
     --save_total_limit 100 \
     --learning_rate 3e-5 \
     --weight_decay 0.1 \
@@ -19,7 +18,7 @@ deepspeed --include "localhost:0,1,2,3,4,5,6,7" --master_port 14223 finetune/fin
     --warmup_ratio 0.01 \
     --lr_scheduler_type "cosine" \
     --logging_steps 10 \
-    --report_to "wandb" \
+    --report_to "none" \
     --run_name "xxx" \
     --model_max_length 1280 \
     --lazy_preprocess True \
