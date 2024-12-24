@@ -1,27 +1,26 @@
 deepspeed --include "localhost:0,1,2,3,4,5,6,7" --master_port 14223 finetune/finetune.py \
     --model_name_or_path Qwen/Qwen-VL-Chat \
     --qwen_path Qwen/Qwen-VL-Chat \
-    --data_path path/to/all_data.json \
+    --data_path /mnt/nvme0n1p1/hongxin_li/UI_training_data/raw/funcpred/20241019_fourSimpleTasks/funcpred_simpletasks_654k_closeloop_openloop_visapperance_125k_onlyGnd63k.json \
     --bf16 True \
     --fix_vit False \
-    --output_dir ./checkpoints/xxx \
-    --num_train_epochs 1 \
-    --per_device_train_batch_size 4 \
+    --output_dir ./checkpoints/1205_QwenVL_125kVisApperance_onlyGnd \
+    --num_train_epochs 2 \
+    --per_device_train_batch_size 2 \
     --per_device_eval_batch_size 1 \
-    --gradient_accumulation_steps 4 \
+    --gradient_accumulation_steps 8 \
     --evaluation_strategy "no" \
-    --save_strategy "steps" \
-    --save_steps 400 \
+    --save_strategy "epoch" \
     --save_total_limit 100 \
     --learning_rate 3e-5 \
     --weight_decay 0.1 \
     --adam_beta2 0.95 \
     --warmup_ratio 0.01 \
     --lr_scheduler_type "cosine" \
-    --logging_steps 10 \
-    --report_to "wandb" \
-    --run_name "xxx" \
-    --model_max_length 1280 \
+    --logging_steps 5 \
+    --report_to "none" \
+    --run_name "L20_funcpred625k_llava150k_cauldron197k_refGnd_896_4patch" \
+    --model_max_length 768 \
     --lazy_preprocess True \
     --use_lora \
     --gradient_checkpointing \
