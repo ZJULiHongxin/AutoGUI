@@ -21,7 +21,9 @@ model_specific_prompt_kwargs:
     post_prompt: |
       I want to {goal_info}. Please locate the target element I should interact with. (Output the center coordinates of the target)
   autogui:
-    format: random
+    format: autogui
+    post_prompt: |
+      Where is the "{goal_info}" element (with point)?
   seeclick:
     format: seeclick
     post_prompt: |

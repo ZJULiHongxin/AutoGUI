@@ -1,10 +1,9 @@
-dataset_path: rootsautomation/ScreenSpot
+dataset_path: HongxinLi/ScreenSpot_v2
 output_type: generate_until
 doc_to_visual: !function utils_rec.screenspot_rec_doc_to_visual
 doc_to_text: !function utils_rec.screenspot_rec_doc_to_text
 doc_to_target: "bbox"
 generation_kwargs:
-  max_new_tokens: 32
   until:
     - "ASSISTANT:"
 process_results: !function utils_rec.screenspot_rec_process_result
@@ -36,11 +35,13 @@ model_specific_prompt_kwargs:
   uipro_qwen2_vl:
     format: uipro_qwen2_vl
     post_prompt: |
-      Where is the {goal_info} element? (Output the center coordinates of the target)
+      I want to {goal_info}. Please locate the target element I should interact with. (Output the center coordinates of the target)
   autogui:
-    format: autogui
+    format: random
+  uipro:
+    format: uipro
     post_prompt: |
-      Where is the "{goal_info}" element (with point)?
+      I want to {goal_info}. Please locate the target element I should interact with. (with bbox)
   tinyclick:
     format: tinyclick
     post_prompt: |
@@ -68,14 +69,14 @@ model_specific_prompt_kwargs:
     post_prompt: |
       Instruction: {goal_info}.
 model_specific_process_kwargs:
-  uipro_qwen2_vl:
-    scale: 1000
   ferretui:
     scale: 1000
   autogui:
     scale: 1000
   uipro:
     scale: 100
+  uipro_qwen2_vl:
+    scale: 1000
   qwen_vl_chat:
     scale: 1000
   qwen2_vl:
@@ -87,8 +88,6 @@ model_specific_process_kwargs:
   minicpm_v:
     scale: 1000
   tinyclick:
-    scale: 1000
-  qwen2_vl_cloud:
     scale: 1000
   llava_hf:
     scale: 100

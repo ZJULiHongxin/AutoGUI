@@ -112,7 +112,6 @@ class QWenTokenizer(PreTrainedTokenizer):
         box_end_tag='</box>',
         quad_start_tag='<quad>',
         quad_end_tag='</quad>',
-        multidigit=False,
         **kwargs,
     ):
         self.image_start_tag = image_start_tag
@@ -138,42 +137,7 @@ class QWenTokenizer(PreTrainedTokenizer):
         self.errors = errors  # how to handle errors in decoding
 
         self.mergeable_ranks = _load_tiktoken_bpe(vocab_file)  # type: dict[bytes, int]
-        ### support multi-digit
-        def add_multidigit_support(digit_number, mode):
-            custom_vocab = []
-            for i in range(1, digit_number+1):
-                for j in range(10**i):
-                    custom_vocab.append(str(j).zfill(i))
-            
-            if mode == 'remap':
-                index = 0x1F300 # use range of U+1F300..U+1F5FF
-                max_index = 0x1F5FF
-                while custom_vocab:
-                    vocab = custom_vocab.pop(0)
-                    if vocab.encode() in self.mergeable_ranks:
-                        continue
-                    while not chr(index).encode() in self.mergeable_ranks:
-                        index += 1
-                        if index >= max_index:
-                            raise ValueError("No more available code points")
-                    token_id = self.mergeable_ranks.pop(chr(index).encode())
-                    self.mergeable_ranks[vocab.encode()] = token_id
-                    
-            elif mode == 'expand':
-                token_id = 151936 # The number of token embedding supported by the original Qwen is 151936
-                while custom_vocab:
-                    vocab = custom_vocab.pop(0)
-                    if vocab.encode() in self.mergeable_ranks:
-                        continue
-                    self.mergeable_ranks[vocab.encode()] = token_id
-                    token_id += 1
-                    
-            else:
-                raise Exception(f"Unsupported {mode} mode for multidigit. multidigit arg must be either 'expand' or 'remap'")
-                
-        if multidigit:
-            print(Fore.YELLOW + "Use multi-digit encoding..." + Style.RESET_ALL)
-            add_multidigit_support(DIGIT_NUMBER, multidigit)
+
         ## end
         self.special_tokens = {
             token: index

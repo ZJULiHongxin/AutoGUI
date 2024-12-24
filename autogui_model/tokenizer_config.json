@@ -8,6 +8,5 @@
   "clean_up_tokenization_spaces": true,
   "model_max_length": 2048,
   "padding_side": "right",
-  "tokenizer_class": "QWenTokenizer",
-  "multidigit": false
+  "tokenizer_class": "QWenTokenizer"
 }

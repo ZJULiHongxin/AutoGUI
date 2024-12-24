@@ -34,7 +34,7 @@ IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 class ModelArguments:
     model_name_or_path: Optional[str] = field(default="Qwen/Qwen-7B")
     qwen_path: Optional[str] = field(default=None)
-
+    image_size: int = 448
 
 @dataclass
 class DataArguments:
@@ -45,6 +45,7 @@ class DataArguments:
         default=None, metadata={"help": "Path to the evaluation data."}
     )
     lazy_preprocess: bool = False
+    use_ref_tag: Optional[bool] = field(default=True)
 
 
 @dataclass
@@ -73,10 +74,38 @@ class LoraArguments:
     modules_to_save: List[str] = field(
         default_factory=lambda: [] # lambda: ["wte", "lm_head", "transformer.wte"]  ##["in_proj","out_proj","c_fc"]
     )
+    modules_to_save: List[str] = field(
+        default_factory=lambda: [] # lambda: ["wte", "lm_head", "transformer.wte"]  ##["in_proj","out_proj","c_fc"]
+    )
     lora_weight_path: str = ""
     lora_bias: str = "none"
     q_lora: bool = False
 
+def is_serializable(obj):
+    try:
+        json.dumps(obj)
+        return True
+    except (TypeError, OverflowError):
+        return False
+
+def clean_dict(data):
+    if isinstance(data, dict):
+        return {k: clean_dict(v) for k, v in data.items() if is_serializable(v)}
+    elif isinstance(data, list):
+        return [clean_dict(item) for item in data if is_serializable(item)]
+    else:
+        return data if is_serializable(data) else None
+
+def print_trainable_params(model: torch.nn.Module):
+    trainable_params, all_param = 0, 0
+    for param in model.parameters():
+        num_params = param.numel()
+        all_param += num_params
+        if param.requires_grad:
+            trainable_params += num_params
+    
+    return "trainable params: {:d} || all params: {:d} || trainable%: {:.4f}".format(
+        trainable_params, all_param, 100 * trainable_params / all_param)
 
 def is_serializable(obj):
     try:
@@ -143,6 +172,12 @@ def get_peft_state_maybe_zero_3(named_params, bias):
     to_return = {k: maybe_zero_3(v) for k, v in to_return.items()}
     return to_return
 
+def get_peft_state_non_lora_maybe_zero_3(named_params, require_grad_only=True):
+    to_return = {k: t for k, t in named_params if "lora_" not in k}
+    if require_grad_only:
+        to_return = {k: t for k, t in to_return.items() if t.requires_grad}
+    to_return = {k: maybe_zero_3(v, ignore_status=True).cpu() for k, v in to_return.items()}
+    return to_return
 
 def get_peft_state_non_lora_maybe_zero_3(named_params, require_grad_only=True):
     to_return = {k: t for k, t in named_params if "lora_" not in k}
@@ -181,7 +216,11 @@ def get_point(tokenizer, sentence):
     tokenized_id = tokenizer(sentence).input_ids
     point_id = tokenizer('<ref>').input_ids
     # box_id = tokenizer(TAG_MAP['<bbox>']).input_ids
-    for x, y in re.findall(r"<ref>\s*\((\d+),\s*(\d+)\)", sentence):
+    for coord in re.findall(r"<ref>\s*\((.*?)\)", sentence):
+        x, y = coord.split(',')
+        x = ''.join(re.findall(r'\d', x))
+        y = ''.join(re.findall(r'\d', y))
+    # for x, y in re.findall(r"<ref>\s*\((\d+),\s*(\d+)\)", sentence):
         points.append([int(x), int(y)])
     if len(points) == 0:
         points.append([-100, -100])
@@ -194,7 +233,7 @@ def preprocess(
         sources,
         tokenizer: transformers.PreTrainedTokenizer,
         max_len: int,
-        system_message: str = "You are a helpful assistant."
+        system_message: str = "You are a helpful assistant.",
 ) -> Dict:
     roles = {"user": "<|im_start|>user", "assistant": "<|im_start|>assistant"}
 
@@ -246,6 +285,7 @@ def preprocess(
         input_ids.append(input_id[:max_len])
         targets.append(target[:max_len])
         points_conv.append(points) # 记录多轮对话中的所有points
+    
     points_all = torch.tensor(points_conv, dtype=torch.int)
     input_ids = torch.tensor(input_ids, dtype=torch.int)
     targets = torch.tensor(targets, dtype=torch.int64)
@@ -291,7 +331,6 @@ class LazySupervisedDataset(Dataset):
         super(LazySupervisedDataset, self).__init__()
         self.tokenizer = tokenizer
         self.max_len = max_len
-
         rank0_print("Formatting inputs...Skip in lazy mode")
         self.tokenizer = tokenizer
         self.raw_data = raw_data
@@ -367,13 +406,18 @@ def make_supervised_data_module(
     dataset_cls = (
         LazySupervisedDataset if data_args.lazy_preprocess else SupervisedDataset
     )
-    rank0_print("Loading data...")
+    rank0_print(f"Loading data...{' (Remove all ref tags)' if not data_args.use_ref_tag else ''}")
 
     train_json = json.load(open(data_args.data_path, "r"))
     # max_length = 0
+    # lengths = []
+    # longest_sample = None
     # # new_json = []
-    # for i in tqdm.tqdm(range(len(train_json))):
-    #     for conv in train_json[i]["conversations"]:
+    for i in tqdm.tqdm(range(len(train_json)), total=len(train_json), desc="Inspecting the dataset ..."):
+        for conv in train_json[i]["conversations"]:
+            if not data_args.use_ref_tag:
+                conv['value'] = conv['value'].replace("<ref>", "")
+
     #         if conv['from'] == 'human':
     #             conv['from'] = 'user'
     #         elif conv['from'] == 'gpt':
@@ -389,7 +433,7 @@ def make_supervised_data_module(
     #     # check fist
     #     length = 0
     #     for conv_i in range(len(train_json[i]["conversations"]) // 2):
-    #         tokenized = tokenizer(train_json[i]["conversations"][0]['value'])
+    #         tokenized = tokenizer(f'{train_json[i]["conversations"][conv_i*2]["value"]} {train_json[i]["conversations"][conv_i*2]["value"]}')
     #         points_in_s, index = get_point(tokenizer, train_json[i]["conversations"][0]['value'])
     #         if points_in_s != [[-100, -100]] and '<ref>' in train_json[i]["conversations"][0]['value']:
     #             assert len(points_in_s) == len(index), train_json[i]["conversations"][0]['value']
@@ -397,8 +441,12 @@ def make_supervised_data_module(
     #             for point in points_in_s:
     #                 assert all(p < 100 and p >=0 for p in point), train_json[i]["conversations"][0]['value']
     #         length += len(tokenized["input_ids"])
+        
+    #     lengths.append(length)
     #     if length > max_length:
     #         max_length = length
+    #         longest_sample = train_json[i]
+
     # print("max_length: ", max_length) # 739 for mc.json 739+256 = 995
     train_dataset = dataset_cls(train_json, tokenizer=tokenizer, max_len=max_len)
 
@@ -451,9 +499,17 @@ def train():
         "autogui_model",
         trust_remote_code=True,
     )
+    rank0_print(Fore.YELLOW + f"Image size: {config.visual['image_size']}" + Style.RESET_ALL)
+    # config = QWenConfig.from_pretrained(
+    #     "autogui_model",
+    #     cache_dir=training_args.cache_dir,
+    #     trust_remote_code=True,
+    # )
     config.use_cache = False
     config.vocab_size = 151936 # vocab size指的是实际的词表大小 (Qwen实际大小是151860），即tokenizer中支持的token数。config.json中数值是实际模型中的embedding size的大小，由于计算效率原因，一般会设置为128的倍数（即151936 = 1187 * 128），会比实际的vocab size大一些哈。
     # Load model and tokenizer
+    config.use_ref_tag = data_args.use_ref_tag
+
     model = AutoGUILMHeadModel.from_pretrained(
         model_args.qwen_path,
         config=config,
@@ -466,8 +522,8 @@ def train():
         if training_args.use_lora and lora_args.q_lora
         else None,
     )
-
     # customized LoRA parameters
+    #if 'monkey' not in model_args.model_name_or_path.lower():
     target_modules = []
     target_layer_names = ["visual.conv1", "attn.in_proj", "attn.out_proj", "mlp.c_fc", "mlp.c_proj", "c_attn",
                           "attn.c_proj", "w1", "w2"]
@@ -484,13 +540,14 @@ def train():
                 # input()
     
     lora_args.lora_target_modules = target_modules
-
-    """
-    # print the LoRA parameters
-    for name, param in model.named_parameters():
-        if any(target in name for target in lora_args.lora_target_modules):
-            print(name)
-    """
+    # else:
+    #     lora_args.modules_to_save = []
+    # """
+    # # print the LoRA parameters
+    # for name, param in model.named_parameters():
+    #     if any(target in name for target in lora_args.lora_target_modules):
+    #         print(name)
+    # """
 
     if not training_args.use_lora:
         if training_args.fix_vit and hasattr(model, 'transformer') and hasattr(model.transformer, 'visual'):
@@ -506,7 +563,7 @@ def train():
         trust_remote_code=True
     )
     tokenizer.pad_token_id = tokenizer.eod_id
-
+    
     if training_args.use_lora:
         if lora_args.q_lora or "chat" in model_args.model_name_or_path.lower():
             modules_to_save = lora_args.modules_to_save
@@ -526,7 +583,7 @@ def train():
                 lora_dropout=lora_args.lora_dropout,
                 bias=lora_args.lora_bias,
                 task_type="CAUSAL_LM",
-                modules_to_save=modules_to_save  # This argument serves for adding new tokens.
+                modules_to_save=modules_to_save  # This argument serves for adding new tokens. # 除了lora部分外，还有哪些层可以被训练，并且需要保存；
             )
 
         if lora_args.q_lora:
@@ -541,7 +598,7 @@ def train():
                 ) 
         else:       
             model = get_peft_model(model, lora_config)
-
+        
         if training_args.gradient_checkpointing:
             model.enable_input_require_grads()
             model.set_grad_checkpointing()
@@ -602,8 +659,8 @@ def train():
     trainer = Trainer(
         model=model, tokenizer=tokenizer, args=training_args, callbacks=[SaveCallback()] if training_args.use_lora else None, **data_module
     ) 
-
-    trainer.train()
+            
+    trainer.train(resume_from_checkpoint=False)
     trainer.save_state()
 
     if training_args.use_lora:
@@ -631,6 +688,5 @@ def setup_seed(seed):
     # torch.backends.cudnn.deterministic = True
     # torch.backends.cudnn.benchmark = False
     os.environ["PYTHONHASHSEED"] = str(seed)
-
 if __name__ == "__main__":
     train()
