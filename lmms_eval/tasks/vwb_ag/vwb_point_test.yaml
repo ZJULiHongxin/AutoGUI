@@ -1,12 +1,12 @@
-group: motif
-task: motif_point_test
-test_split: test_au_tu
-include: _default_template_motif_yaml
-process_docs: !function utils_point.motif_preprocess_dataset
+group: vwb_ag
+dataset_path: HongxinLi/VWB-AG
+task: vwb_ag_test
+test_split: test
+include: _default_template_vwb_yaml
 output_type: generate_until
-doc_to_visual: !function utils_point.motif_doc_to_visual
-doc_to_text: !function utils_point.motif_doc_to_text
-doc_to_target: !function  utils_point.motif_doc_to_target
+doc_to_visual: !function utils_point.vwb_doc_to_visual
+doc_to_text: !function utils_point.vwb_doc_to_text
+doc_to_target: !function  utils_point.vwb_doc_to_target
 metadata:
   - version: 0.0
 model_specific_prompt_kwargs:
@@ -14,22 +14,28 @@ model_specific_prompt_kwargs:
     format: uipro_qwen2_vl
     post_prompt: |
       I want to {goal_info}. Please locate the target element I should interact with. (Output the center coordinates of the target)
+  ferretui:
+    format: ferretui
+    post_prompt: |
+      Provide the bounding boxes of the mentioned objects. {goal_info}
   autogui:
     format: autogui
     post_prompt: |
       Where is the "{goal_info}" element (with point)?
-  seeclick:
-    format: seeclick
-    post_prompt: |
-      In the UI, where should I click if I want to complete instruction "{goal_info}" (with point)?
   tinyclick:
     format: tinyclick
     post_prompt: |
       What to do to execute the command? click on {goal_info}
+  seeclick:
+    format: seeclick
+    post_prompt: |
+      Given a screenshot, I will describe a specific element; your task is to predict their locations (with point). {goal_info}
   qwen_vl_chat:
     format: qwen_vl_chat
+    pre_prompt: |
+      Locate the element according to the UI screenshot and instruction, output the localized bounding box.
     post_prompt: |
-      In the UI, where should I click if I want to complete instruction "{goal_info}" (with bounding box)?
+      Instruction: {goal_info}.
   slime:
     format: qwen_vl_chat
     post_prompt: |
@@ -40,12 +46,15 @@ model_specific_prompt_kwargs:
       Generate the target element according to the UI screenshot, instruction. Please provide the answer directly (with grounding). 
     post_prompt: |
       Instruction: {goal_info}.
+  deepseek_vl_chat:
+    format: deepseek_vl_chat
+    post_prompt: |
+      In this UI screenshot, what is the position of the element corresponding to the command "{goal_info}"? Output the normalized X and Y coordinates, ranging from 0.0 to 1.0. Note that the X-axis runs horizontally from left (0.0) to right (1.0), and the Y-axis runs vertically from top (0.0) to bottom (1.0). Your should carefully view the image before finally predicting the required position in the format [X, Y].
   ferretui:
     format: ferretui
     post_prompt: |
-      Where is the the element used to "{goal_info}"?
-process_results: !function utils_point.motif_point_process_results
-
+      Where is the "{goal_info}"?
+process_results: !function utils_point.vwb_point_process_results
 model_specific_process_kwargs:
   uipro_qwen2_vl:
     scale: 1000
@@ -70,23 +79,6 @@ model_specific_process_kwargs:
   llava_hf:
     scale: 100
 metric_list: # extract the value according to the metric: "key". Thus, the process_results should output the {key1: , key2: ...}
-  - metric: motif_gnd_result
-    aggregation: !function utils_point.motif_gnd_result
+  - metric: vwb_action-gnd_result
+    aggregation: !function utils_point.vwb_gnd_result
     higher_is_better: true
-  # - metric: partial_action_bbox_acc # action_point
-  #   aggregation: !function utils_point.motif_partial_aggregation_result
-  #   higher_is_better: true
-  # - metric: complete_action_bbox_acc
-  #   aggregation: !function utils_point.motif_complete_aggregation_result
-  #   higher_is_better: true
-  # - metric: partial_action_acc
-  #   aggregation: !function utils_point.motif_partial_aggregation_result
-  #   higher_is_better: true
-  # - metric: complete_action_acc
-  #   aggregation: !function utils_point.motif_complete_aggregation_result
-  #   higher_is_better: true
-  # - metric: nogroup_action_bbox_acc
-  #   aggregation: !function utils_point.motif_nogroup_aggregation_result
-  #   higher_is_better: true
-
-
