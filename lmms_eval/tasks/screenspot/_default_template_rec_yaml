@@ -37,6 +37,10 @@ model_specific_prompt_kwargs:
     format: uipro_qwen2_vl
     post_prompt: |
       Where is the {goal_info} element? (Output the center coordinates of the target)
+  uipro_florence2:
+    format: uipro_florence2
+    post_prompt: |
+      Where is the {goal_info} element? (Output the center coordinates of the target)
   autogui:
     format: autogui
     post_prompt: |
@@ -69,6 +73,8 @@ model_specific_prompt_kwargs:
       Instruction: {goal_info}.
 model_specific_process_kwargs:
   uipro_qwen2_vl:
+    scale: 1000
+  uipro_florence2:
     scale: 1000
   ferretui:
     scale: 1000

@@ -1,4 +1,4 @@
-import torch
+import torch, re
 import logging
 from tqdm import tqdm
 from lmms_eval import utils
@@ -9,7 +9,6 @@ from lmms_eval.models.model_utils.qwen.qwen_generate_utils import make_context
 from accelerate import Accelerator, DistributedType
 from typing import List, Optional, Union, Tuple
 import uuid
-import os
 from colorama import Fore, Style
 import warnings
 
@@ -17,13 +16,28 @@ warnings.simplefilter("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore")
 
 eval_logger = logging.getLogger("lmms-eval")
-from transformers import AutoModelForCausalLM, AutoTokenizer, AutoProcessor
-from tinyclick_utils.tinyclick_utils import postprocess
+from transformers import AutoModelForCausalLM, AutoProcessor
 
+def postprocess(text: str):
+    """Function that decodes model's generation into action json.
 
+    Args:
+        text: single generated sample
+    """
+    point_pattern = r"<loc_(\d+)>,<loc_(\d+)>"
 
-@register_model("tinyclick")
-class TinyClick(lmms):
+    try:
+        location = re.findall(point_pattern, text)[0]
+        if len(location) > 0:
+            point = [int(loc) for loc in location]
+
+    except Exception:
+        point = (0, 0)
+
+    return point
+
+@register_model("uipro_florence2")
+class UIPro_Florence2(lmms):
 
     def __init__(
         self,
@@ -244,7 +258,7 @@ class TinyClick(lmms):
                 eval_logger.error(f"Error {e} in generating")
                 cont = ""
             text_outputs = self.tokenizer.batch_decode(cont, skip_special_tokens=False)[0]
-            text_outputs = postprocess(text_outputs, img_size)
+            text_outputs = postprocess(text_outputs)
 
             if self._rank == 0 and doc_id[0] % 5 == 0:
                 print(f"Generated text for doc ID {doc_id[0]}:")
