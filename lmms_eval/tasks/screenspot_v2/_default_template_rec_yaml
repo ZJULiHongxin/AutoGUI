@@ -81,6 +81,8 @@ model_specific_process_kwargs:
     scale: 100
   uipro_qwen2_vl:
     scale: 1000
+  uipro_florence2:
+    scale: 1000
   qwen_vl_chat:
     scale: 1000
   qwen2_vl:

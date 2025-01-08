@@ -57,6 +57,8 @@ model_specific_prompt_kwargs:
 model_specific_process_kwargs:
   uipro_qwen2_vl:
     scale: 1000
+  uipro_florence2:
+    scale: 1000
   ferretui:
     scale: 1000
   autogui:
