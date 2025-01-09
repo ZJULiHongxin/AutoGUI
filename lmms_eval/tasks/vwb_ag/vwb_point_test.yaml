@@ -80,6 +80,8 @@ model_specific_process_kwargs:
     scale: 1000
   tinyclick:
     scale: 1000
+  qwen2_vl:
+    scale: 1000
   qwen2_vl_cloud:
     scale: 1000
   llava_hf:

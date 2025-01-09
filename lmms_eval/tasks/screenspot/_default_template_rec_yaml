@@ -85,7 +85,7 @@ model_specific_process_kwargs:
   qwen_vl_chat:
     scale: 1000
   qwen2_vl:
-    scale: 1
+    scale: 1000
   monkey:
     scale: 1000
   slime:
