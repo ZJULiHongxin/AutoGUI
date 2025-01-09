@@ -29,7 +29,7 @@ class UIPro(lmms):
         device: str = "cuda",
         dtype: Optional[Union[str, torch.dtype]] = "auto",
         batch_size: int = 1,
-        max_new_tokens: Optional[int] = 8,
+        max_new_tokens: Optional[int] = 32,
         attn_implementation: Optional[str] = None,
         device_map: str = "",
         chat_template: Optional[str] = None,

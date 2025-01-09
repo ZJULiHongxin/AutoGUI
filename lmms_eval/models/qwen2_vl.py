@@ -277,7 +277,7 @@ class Qwen2_VL(lmms):
             
             # preconfigure gen_kwargs with defaults
             if "max_new_tokens" not in gen_kwargs:
-                gen_kwargs["max_new_tokens"] = 8
+                gen_kwargs["max_new_tokens"] = 128
             if "temperature" not in gen_kwargs:
                 gen_kwargs["temperature"] = 0
             if "top_p" not in gen_kwargs:

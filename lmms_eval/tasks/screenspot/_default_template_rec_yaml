@@ -37,8 +37,14 @@ model_specific_prompt_kwargs:
     format: uipro_qwen2_vl
     post_prompt: |
       Where is the {goal_info} element? (Output the center coordinates of the target)
+  uipro_florence2:
+    format: uipro_florence2
+    post_prompt: |
+      Where is the {goal_info} element? (Output the center coordinates of the target)
   autogui:
-    format: random
+    format: autogui
+    post_prompt: |
+      Where is the "{goal_info}" element (with point)?
   tinyclick:
     format: tinyclick
     post_prompt: |
@@ -68,6 +74,8 @@ model_specific_prompt_kwargs:
 model_specific_process_kwargs:
   uipro_qwen2_vl:
     scale: 1000
+  uipro_florence2:
+    scale: 1000
   ferretui:
     scale: 1000
   autogui:
@@ -77,7 +85,7 @@ model_specific_process_kwargs:
   qwen_vl_chat:
     scale: 1000
   qwen2_vl:
-    scale: 1
+    scale: 1000
   monkey:
     scale: 1000
   slime:

@@ -239,9 +239,9 @@ def apply_vlm_template(task_instruction, model_name, output_box=False):
     elif 'llama' in model_name:
         prompt = BOX_PROMPT# if output_box else POSITION_PROMPT
     elif 'uipro' in model_name:
-        prompt = get_default_prompt(output_box=False)
-        elem_desc = ' This element is used for "{}"' if not task_instruction.startswith("This element") else ' {}'
-        prompt = prompt + elem_desc
+        prompt = get_default_prompt(output_box=output_box)
+        #elem_desc = ' This element is used for "{}"' if not task_instruction.startswith("This element") else ' {}'
+        prompt = prompt + ' {}'#task_instruction
     elif 'minicpm' in model_name:
         # Llava-1.6 Example: "[INST] <image>\nIn this UI screenshot, what is the position of the element corresponding to the command "{}"? [/INST]"
         prompt = get_qwenvl_prompt(output_box=True)
@@ -253,7 +253,8 @@ def apply_vlm_template(task_instruction, model_name, output_box=False):
         prompt = get_cogagent_prompt(output_box=output_box)
     elif 'qwen2' in model_name:
         # Qwen-VL Example: "What are the bounding box coordinates of the element corresponding to the command \"{}\" in this UI screenshot?"
-        prompt = """In this UI screenshot, what is the position of the element corresponding to the description "{}"? Please output its coordinates."""
+        prompt = """In this UI screenshot, what are the bounding box coordinates of the element corresponding to the command "{}"? Output the normalized X and Y coordinates, ranging from 0 to 1000. Note that the X-axis runs horizontally from left (0) to right (999), and the Y-axis runs vertically from top (0) to bottom (999). Your should carefully view the image before finally predicting the required bounding box coordinates in the format [X_topleft, Y_topleft, X_bottomright, Y_bottomright]. Your answer MUST only include the coordiniates withou any explanations."""
+        #"""In this UI screenshot, what is the position of the element corresponding to the description "{}"? Please output its coordinates."""
     elif 'qwen' in model_name or 'slime' in model_name:
         # Qwen-VL Example: "What are the bounding box coordinates of the element corresponding to the command \"{}\" in this UI screenshot?"
         prompt = get_qwenvl_prompt(output_box=output_box)

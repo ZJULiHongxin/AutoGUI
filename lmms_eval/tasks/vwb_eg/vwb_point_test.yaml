@@ -14,6 +14,10 @@ model_specific_prompt_kwargs:
     format: uipro_qwen2_vl
     post_prompt: |
       Locate the text "{goal_info}" (Output the center coordinates of the target)
+  uipro_florence2:
+    format: uipro_florence2
+    post_prompt: |
+      I want to {goal_info}. Please locate the target element I should interact with. (Output the center coordinates of the target)
   ferretui:
     format: ferretui
     post_prompt: |
@@ -56,6 +60,8 @@ process_results: !function utils_point.vwb_point_process_results
 model_specific_process_kwargs:
   uipro_qwen2_vl:
     scale: 1000
+  uipro_florence2:
+    scale: 1000
   ferretui:
     scale: 1000
   autogui:
@@ -71,6 +77,8 @@ model_specific_process_kwargs:
   minicpm_v:
     scale: 1000
   tinyclick:
+    scale: 1000
+  qwen2_vl:
     scale: 1000
   qwen2_vl_cloud:
     scale: 1000

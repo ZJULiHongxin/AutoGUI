@@ -23,7 +23,8 @@ AVAILABLE_MODELS = {
     "claude": "Claude",
     "tinyclick": "TinyClick",
     "ferretui": "FerretUI",
-    "llama_vision": "LlamaVision"
+    "llama_vision": "LlamaVision",
+    "uipro_florence2": "UIPro_Florence2"
 }
 
 for model_name, model_class in AVAILABLE_MODELS.items():

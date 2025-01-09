@@ -27,6 +27,7 @@ from autogui_model.modeling_autogui import AutoGUILMHeadModel
 from autogui_model.configuration_autogui import AutoGUIConfig
 from autogui_model.configuration_qwen import QWenConfig
 from autogui_model.tokenization_qwen import QWenTokenizer
+
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 
 
@@ -35,6 +36,7 @@ class ModelArguments:
     model_name_or_path: Optional[str] = field(default="Qwen/Qwen-7B")
     qwen_path: Optional[str] = field(default=None)
     image_size: int = 448
+    multidigit: Optional[bool] = field(default=False)
 
 @dataclass
 class DataArguments:
@@ -70,9 +72,6 @@ class LoraArguments:
     lora_dropout: float = 0.05
     lora_target_modules: List[str] = field(
         default_factory=lambda: ["c_attn", "attn.c_proj", "w1", "w2"]  ##["in_proj","out_proj","c_fc"]
-    ),
-    modules_to_save: List[str] = field(
-        default_factory=lambda: [] # lambda: ["wte", "lm_head", "transformer.wte"]  ##["in_proj","out_proj","c_fc"]
     )
     modules_to_save: List[str] = field(
         default_factory=lambda: [] # lambda: ["wte", "lm_head", "transformer.wte"]  ##["in_proj","out_proj","c_fc"]
@@ -80,32 +79,6 @@ class LoraArguments:
     lora_weight_path: str = ""
     lora_bias: str = "none"
     q_lora: bool = False
-
-def is_serializable(obj):
-    try:
-        json.dumps(obj)
-        return True
-    except (TypeError, OverflowError):
-        return False
-
-def clean_dict(data):
-    if isinstance(data, dict):
-        return {k: clean_dict(v) for k, v in data.items() if is_serializable(v)}
-    elif isinstance(data, list):
-        return [clean_dict(item) for item in data if is_serializable(item)]
-    else:
-        return data if is_serializable(data) else None
-
-def print_trainable_params(model: torch.nn.Module):
-    trainable_params, all_param = 0, 0
-    for param in model.parameters():
-        num_params = param.numel()
-        all_param += num_params
-        if param.requires_grad:
-            trainable_params += num_params
-    
-    return "trainable params: {:d} || all params: {:d} || trainable%: {:.4f}".format(
-        trainable_params, all_param, 100 * trainable_params / all_param)
 
 def is_serializable(obj):
     try:
@@ -170,13 +143,6 @@ def get_peft_state_maybe_zero_3(named_params, bias):
     else:
         raise NotImplementedError
     to_return = {k: maybe_zero_3(v) for k, v in to_return.items()}
-    return to_return
-
-def get_peft_state_non_lora_maybe_zero_3(named_params, require_grad_only=True):
-    to_return = {k: t for k, t in named_params if "lora_" not in k}
-    if require_grad_only:
-        to_return = {k: t for k, t in to_return.items() if t.requires_grad}
-    to_return = {k: maybe_zero_3(v, ignore_status=True).cpu() for k, v in to_return.items()}
     return to_return
 
 def get_peft_state_non_lora_maybe_zero_3(named_params, require_grad_only=True):
@@ -526,7 +492,7 @@ def train():
     #if 'monkey' not in model_args.model_name_or_path.lower():
     target_modules = []
     target_layer_names = ["visual.conv1", "attn.in_proj", "attn.out_proj", "mlp.c_fc", "mlp.c_proj", "c_attn",
-                          "attn.c_proj", "w1", "w2"]
+                        "attn.c_proj", "w1", "w2"]
     excluded_module_names = ['post_qformer']
     lora_supported_types = [torch.nn.Linear, torch.nn.Embedding, torch.nn.Conv2d, transformers.pytorch_utils.Conv1D]
     
@@ -554,15 +520,41 @@ def train():
             model.transformer.visual.requires_grad_(False)
             if hasattr(model.transformer.visual, 'attn_pool'):
                 model.transformer.visual.attn_pool.requires_grad_(True)
+
     tokenizer = QWenTokenizer.from_pretrained(
         "autogui_model",
         cache_dir=training_args.cache_dir,
         model_max_length=training_args.model_max_length,
         padding_side="right",
         use_fast=False,
-        trust_remote_code=True
+        trust_remote_code=True,
+        multidigit=model_args.multidigit
     )
     tokenizer.pad_token_id = tokenizer.eod_id
+    
+    ### initialize the embeddings for new tokens
+    if model_args.multidigit:
+        digit_vocab = json.load(open('autogui_model/digit_vocab_1.json', 'r'))
+        _tokens, new_token_ids = [], []
+        for k, v in digit_vocab['vocab'].items():
+            _digit = re.search(r'\d', k)[0]
+            _tokens.append(_digit)
+            new_token_ids.append(v)
+        digit_token_ids = tokenizer(''.join(_tokens))['input_ids']
+        # new_token_ids = list(digit_vocab['vocab'].values())
+        weights = model.transformer.wte.weight.data
+        _copied_embed = weights[digit_token_ids].clone().detach()
+        weights[new_token_ids] = _copied_embed
+        # weights[new_token_ids] = torch.nn.init.normal_(torch.empty(len(new_token_ids), weights.size(1), dtype=weights.dtype), 0, 0.0145)
+        model.transformer.wte.weight.data = weights
+        # torch.save(model.transformer.wte.weight, 'wte.bin')
+        
+        weights = model.lm_head.weight.data
+        _copied_embed = weights[digit_token_ids].clone().detach()
+        weights[new_token_ids] = _copied_embed
+        # weights[new_token_ids] = torch.nn.init.normal_(torch.empty(len(new_token_ids), weights.size(1), dtype=weights.dtype), 0, 0.0115)
+        model.lm_head.weight.data = weights
+        # torch.save(model.lm_head.weight, 'lm_head.bin')
     
     if training_args.use_lora:
         if lora_args.q_lora or "chat" in model_args.model_name_or_path.lower():
@@ -603,6 +595,13 @@ def train():
             model.enable_input_require_grads()
             model.set_grad_checkpointing()
 
+    # 解冻post_qformer
+    # if hasattr(model.base_model.model.transformer.visual, "post_qformer"):
+    #     rank0_print(Fore.YELLOW + "Use and unfreeze post_resampler" + Style.RESET_ALL)
+    #     for param in model.base_model.model.transformer.visual.post_qformer.parameters():
+    #         param.requires_grad = True
+
+    # Save exp config
     if local_rank == 0:
         try:
             trainable_params, all_param = model.get_nb_trainable_parameters()

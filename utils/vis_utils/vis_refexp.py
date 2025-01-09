@@ -1,8 +1,8 @@
 import os, json, random, cv2, numpy as np
 from datasets import load_dataset
 def vis():
-    compared = [{"model": "seeclick", "eval_file": "/mnt/nvme0n1p1/hongxin_li/AutoGUI/logs/seeclick/0925_101217_test_seeclick_func_pred_rec-motif-refexp-screenspot_rec-vwb/refexp_rec_test.json", "scale": 1},
-             {"model": "autogui", "eval_file": "/mnt/nvme0n1p1/hongxin_li/AutoGUI/logs/autogui/0925_Qwen_AutoGUI702k_func_pred_rec-motif-refexp-screenspot_rec-vwb/refexp_rec_test.json", "scale": 100}]
+    compared = [{"model": "seeclick", "eval_file": "logs/seeclick/0925_101217_test_seeclick_func_pred_rec-motif-refexp-screenspot_rec-vwb/refexp_rec_test.json", "scale": 1},
+             {"model": "autogui", "eval_file": "logs/autogui/Qwen_AutoGUI_SeeClick_func_pred_rec-motif-refexp-screenspot_rec-vwb/refexp_rec_test.json", "scale": 100}]
     
     refexp_test = load_dataset("ivelin/ui_refexp_saved", split="test")
     
@@ -27,7 +27,7 @@ def vis():
             target_pred = round(target_pred[0] / model_info['scale'] * W), round(target_pred[1] / model_info['scale'] * H)
             is_corr = unnorm_box[0] <= target_pred[0] <= unnorm_box[2] and unnorm_box[1] <= target_pred[1] <= unnorm_box[3]
             
-            if model_info['model'] == 'seeclick' and not is_corr:
+            if not is_corr:
                 skip = True
                 break
             
