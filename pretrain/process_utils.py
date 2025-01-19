@@ -83,6 +83,9 @@ GENERAL_COORD_PATTERN = re.compile(r'-?\d+\.?\d*')
 
 def pred_2_point(pred, keep_box=True, scale=1000):
     click_point = None
+    
+    if 'action' in pred: # Handle the case: 'Press on the element that provides access to a specific entry or submission in a contest or competition\n{"action_type": "click", "target": (384,171)}'
+        pred = pred.split('action')[1].strip()
     if isinstance(pred, str):
         if '[[' in pred: # For CogAgent
             coords_start = pred.find('[[')

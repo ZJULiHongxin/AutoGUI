@@ -20,6 +20,13 @@ model_specific_prompt_kwargs:
     format: uipro_qwen2_vl
     post_prompt: |
       I want to {goal_info}. Please locate the target element I should interact with. (Output the center coordinates of the target)
+  uipro_qwen2_vl_planning:
+    format: uipro_qwen2_vl_planning
+    post_prompt: |
+      Given the UI screenshot and previous actions, please generate the next move necessary to advance towards task completion. The user's task is: I want to {goal_info}. Please locate the target element I should interact with. Touch the target element.
+      Action history: Step 1. Travel to the user-specified page. Step 2. Swipe to the target element.
+      
+      Now, first describe the action intent and then directly plan the next action.
   uipro_florence2:
     format: uipro_florence2
     post_prompt: |
@@ -56,6 +63,8 @@ model_specific_prompt_kwargs:
       Where is "the element used to {goal_info}"?
 model_specific_process_kwargs:
   uipro_qwen2_vl:
+    scale: 1000
+  uipro_qwen2_vl_planning:
     scale: 1000
   uipro_florence2:
     scale: 1000

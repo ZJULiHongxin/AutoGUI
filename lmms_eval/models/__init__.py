@@ -2,6 +2,7 @@ import os, traceback
 
 AVAILABLE_MODELS = {
     "uipro_qwen2_vl": "UIPRO_Qwen2_VL",
+    "uipro_qwen2_vl_planning": "UIPRO_Qwen2_VL_Planning",
     "autogui": "AutoGUI",
     'uipro': "UIPro",
     "llava_model": "Llava",
@@ -24,7 +25,7 @@ AVAILABLE_MODELS = {
     "tinyclick": "TinyClick",
     "ferretui": "FerretUI",
     "llama_vision": "LlamaVision",
-    "uipro_florence2": "UIPro_Florence2"
+    "uipro_florence2": "UIPro_Florence2",
 }
 
 for model_name, model_class in AVAILABLE_MODELS.items():
