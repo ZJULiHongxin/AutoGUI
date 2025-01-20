@@ -31,6 +31,10 @@ model_specific_prompt_kwargs:
       Provide the bounding boxes of the mentioned objects. {goal_info}
   autogui:
     format: random
+  autogui_qwen2_vl:
+    format: autogui_qwen2_vl
+    post_prompt: |
+      I want to view the element with text "{goal_info}". Please locate the target element I should interact with. (Output the center coordinates of the target)
   tinyclick:
     format: tinyclick
     post_prompt: |
@@ -75,6 +79,8 @@ model_specific_process_kwargs:
     scale: 1000
   autogui:
     scale: 100
+  autogui_qwen2_vl:
+    scale: 1000
   uipro:
     scale: 100
   qwen_vl_chat:
