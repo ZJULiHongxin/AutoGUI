@@ -4,6 +4,7 @@ AVAILABLE_MODELS = {
     "uipro_qwen2_vl": "UIPRO_Qwen2_VL",
     "uipro_qwen2_vl_planning": "UIPRO_Qwen2_VL_Planning",
     "autogui": "AutoGUI",
+    "autogui_qwen2_vl": "Autogui_Qwen2_VL",
     'uipro': "UIPro",
     "llava_model": "Llava",
     "llava_hf": "LlavaHf",

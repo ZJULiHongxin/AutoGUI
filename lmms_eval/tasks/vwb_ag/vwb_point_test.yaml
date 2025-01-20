@@ -33,6 +33,10 @@ model_specific_prompt_kwargs:
     format: autogui
     post_prompt: |
       Where is the "{goal_info}" element (with point)?
+  autogui_qwen2_vl:
+    format: autogui_qwen2_vl
+    post_prompt: |
+      I want to {goal_info}. Please locate the target element I should interact with. (Output the center coordinates of the target)
   tinyclick:
     format: tinyclick
     post_prompt: |
@@ -79,6 +83,8 @@ model_specific_process_kwargs:
     scale: 1000
   uipro:
     scale: 100
+  autogui_qwen2_vl:
+    scale: 1000
   qwen_vl_chat:
     scale: 1000
   monkey:

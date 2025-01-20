@@ -49,6 +49,10 @@ model_specific_prompt_kwargs:
       I want to {goal_info}. Please locate the target element I should interact with. (Output the center coordinates of the target)
   autogui:
     format: random
+  autogui_qwen2_vl:
+    format: autogui_qwen2_vl
+    post_prompt: |
+      Locate the element according to its detailed functionality description (Output the center coordinates of the target). This element is used to {goal_info}
   uipro:
     format: uipro
     post_prompt: |
@@ -83,6 +87,8 @@ model_specific_process_kwargs:
   ferretui:
     scale: 1000
   autogui:
+    scale: 1000
+  autogui_qwen2_vl:
     scale: 1000
   uipro:
     scale: 100
