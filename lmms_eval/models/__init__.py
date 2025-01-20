@@ -26,6 +26,7 @@ AVAILABLE_MODELS = {
     "ferretui": "FerretUI",
     "llama_vision": "LlamaVision",
     "uipro_florence2": "UIPro_Florence2",
+    "uground": "UGround",
 }
 
 for model_name, model_class in AVAILABLE_MODELS.items():

@@ -24,11 +24,11 @@ from peft import AutoPeftModelForCausalLM
 from transformers import Qwen2VLForConditionalGeneration, AutoTokenizer, AutoProcessor
 from qwen_vl_utils import process_vision_info
 
-@register_model("uipro_qwen2_vl_planning")
-class UIPRO_Qwen2_VL_Planning(lmms):
+@register_model("uground")
+class UGround(lmms):
     def __init__(
         self,
-        pretrained: str = "Qwen/Qwen2-VL-7B-Instruct",
+        pretrained: str = "osunlp/UGround-V1-7B",
         device: Optional[str] = "cuda",
         batch_size: Optional[Union[int, str]] = 1,
         trust_remote_code: Optional[bool] = True,
@@ -55,9 +55,9 @@ class UIPRO_Qwen2_VL_Planning(lmms):
         try:
             self._tokenizer = AutoTokenizer.from_pretrained(pretrained, trust_remote_code=trust_remote_code)
         except:
-            self._tokenizer = AutoTokenizer.from_pretrained('Qwen/Qwen2-VL-7B-Instruct', trust_remote_code=trust_remote_code)
+            self._tokenizer = AutoTokenizer.from_pretrained('osunlp/UGround-V1-7B', trust_remote_code=trust_remote_code)
 
-        self.processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-7B-Instruct", min_pixels=256*28*28, max_pixels=1344*28*28)
+        self.processor = AutoProcessor.from_pretrained("osunlp/UGround-V1-7B", min_pixels=256*28*28, max_pixels=1344*28*28)
         self.resize = resize
         self._config = self._model.config
         # self.model.tie_weights()
