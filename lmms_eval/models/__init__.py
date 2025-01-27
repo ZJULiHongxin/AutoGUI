@@ -28,6 +28,7 @@ AVAILABLE_MODELS = {
     "llama_vision": "LlamaVision",
     "uipro_florence2": "UIPro_Florence2",
     "uground": "UGround",
+    "osatlas": "OSAtlas",
 }
 
 for model_name, model_class in AVAILABLE_MODELS.items():
