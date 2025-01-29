@@ -147,7 +147,7 @@ def evaluate_websrc(samples):
         max_f1 = 0
         for ans in sample["answer"]:
             gold_i = set(_normalize_str(ans))
-
+            if len(pred_i) == 0 or len(gold_i) == 0: continue
             comm_i = gold_i.intersection(pred_i)
             prec_i = len(comm_i) / len(pred_i)
             rec_i = len(comm_i) / len(gold_i)

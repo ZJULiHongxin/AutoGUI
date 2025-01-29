@@ -83,6 +83,10 @@ model_specific_prompt_kwargs:
       Generate the target element according to the UI screenshot, instruction. Please provide the answer directly (with grounding). 
     post_prompt: |
       Instruction: {goal_info}.
+  osatlas:
+    format: osatlas
+    post_prompt: |
+      In this UI screenshot, what is the position of the element corresponding to the command "{goal_info}" (with bbox)?
 model_specific_process_kwargs:
   ferretui:
     scale: 1000
@@ -112,3 +116,5 @@ model_specific_process_kwargs:
     scale: 1000
   llava_hf:
     scale: 100
+  osatlas:
+    scale: 1000
