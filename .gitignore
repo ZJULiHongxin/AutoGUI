@@ -164,5 +164,5 @@ wandb/
 pretrain/eval_results/
 eval_results/
 /logs
-.vscode/launch.json
+.vscode
 autogui_ckpt
