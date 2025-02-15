@@ -79,6 +79,10 @@ model_specific_prompt_kwargs:
       Description: {goal_info}
 
       Answer:
+  osatlas:
+    format: osatlas
+    post_prompt: |
+      In this UI screenshot, what is the position of the element corresponding to the command "{goal_info}" (with bbox)?
 model_specific_process_kwargs:
   uipro_qwen2_vl:
     scale: 1000
@@ -111,4 +115,6 @@ model_specific_process_kwargs:
   llava_hf:
     scale: 100
   uground:
+    scale: 1000
+  osatlas:
     scale: 1000
