@@ -82,6 +82,18 @@ model_specific_prompt_kwargs:
       Generate the target element according to the UI screenshot, instruction. Please provide the answer directly (with grounding). 
     post_prompt: |
       Instruction: {goal_info}.
+  uground:
+    format: uground
+    post_prompt: |
+      Your task is to help the user identify the precise coordinates (x, y) of a specific area/element/object on the screen based on a description.
+
+      - Your response should aim to point to the center or a representative point within the described area/element/object as accurately as possible.
+      - If the description is unclear or ambiguous, infer the most relevant area or element based on its likely context or purpose.
+      - Your answer should be a single string (x, y) corresponding to the point of the interest.
+
+      Description: {goal_info}
+
+      Answer:
 model_specific_process_kwargs:
   uipro_qwen2_vl:
     scale: 1000
@@ -113,3 +125,5 @@ model_specific_process_kwargs:
     scale: 1000
   llava_hf:
     scale: 100
+  uground:
+    scale: 1000
