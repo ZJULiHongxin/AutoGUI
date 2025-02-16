@@ -79,10 +79,8 @@ model_specific_prompt_kwargs:
       Where is the "{goal_info}"?
   cogagent_chat_hf:
     format: cogagent_chat_hf
-    pre_prompt: |
-      Generate the target element according to the UI screenshot, instruction. Please provide the answer directly (with grounding). 
     post_prompt: |
-      Instruction: {goal_info}.
+      Can you point out the element specified by the command "{goal_info}" in the UI screenshot and provide the bounding box of its location? (with grounding). 
   uground:
     format: uground
     post_prompt: |
@@ -131,4 +129,6 @@ model_specific_process_kwargs:
   uground:
     scale: 1000
   osatlas:
+    scale: 1000
+  cogagent_chat_hf:
     scale: 1000

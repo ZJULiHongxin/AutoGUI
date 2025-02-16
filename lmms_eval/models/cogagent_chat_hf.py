@@ -10,7 +10,7 @@ from accelerate import Accelerator, DistributedType
 from accelerate.state import AcceleratorState
 from typing import List, Optional, Union, Tuple
 from transformers import AutoModelForCausalLM, LlamaTokenizer
-
+from colorama import Fore, Style
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -38,7 +38,7 @@ class CogAgentChatHf(lmms):
         self,
         pretrained: str = "THUDM/cogagent-chat-hf",
         revision: str = "main",
-        device: str = "cuda",
+        device: str = "cuda:0",
         dtype: Optional[Union[str, torch.dtype]] = "auto",
         batch_size: int = 1,
         trust_remote_code: Optional[bool] = False,
@@ -267,8 +267,11 @@ class CogAgentChatHf(lmms):
             outputs = cont[:, inputs['input_ids'].shape[1]:]
             for i in range(len(samples)):
                 text_outputs = self.tokenizer.decode(outputs[i]).split("</s>")[0].strip()
-                res.append(text_outputs)
-                self.cache_hook.add_partial("generate_until", (context, gen_kwargs), text_outputs)
+                print(f"Generated text for doc ID {doc_id[i]}:")
+                print(Fore.CYAN + f"prompt: {contexts[i]}")
+                print(Fore.YELLOW + f"response:{text_outputs}\n" + Style.RESET_ALL)
+                res.append({'prompt': contexts[i], 'response': text_outputs})
+                self.cache_hook.add_partial("generate_until", (contexts[i], gen_kwargs), text_outputs)
                 pbar.update(1)
         # reorder this group of results back to original unsorted form
         res = re_ords.get_original(res)
