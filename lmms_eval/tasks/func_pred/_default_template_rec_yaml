@@ -32,6 +32,10 @@ model_specific_prompt_kwargs:
     format: uipro_florence2
     post_prompt: |
       Locate the element according to its detailed functionality description. {goal_info} (Output the center coordinates of the target)
+  uipro_llavaov:
+    format: uipro_llavaov
+    post_prompt: |
+      Where is the "{goal_info}" element?
   autogui:
     format: autogui
     post_prompt: |
