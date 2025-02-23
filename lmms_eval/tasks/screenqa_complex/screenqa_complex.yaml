@@ -1,0 +1,3 @@
+group: screenqa_complex
+task:
+- screenqa_complex_test

@@ -7,9 +7,11 @@ AVAILABLE_MODELS = {
     "autogui_qwen2_vl": "Autogui_Qwen2_VL",
     "autogui_llava": "AutoGUILLaVA",
     'uipro': "UIPro",
+    "uipro_llavaov": "UIProLlavaOneVision",
     "llava_model": "Llava",
     "llava_hf": "LlavaHf",
     "llava_sglang": "LlavaSglang",
+    "llava_onevision": "LlavaOneVision",
     "qwen_vl": "Qwen_VL",
     "qwen_vl_chat": "Qwen_VL_Chat",
     "qwen2_vl": "Qwen2_VL",
@@ -29,6 +31,8 @@ AVAILABLE_MODELS = {
     "llama_vision": "LlamaVision",
     "uipro_florence2": "UIPro_Florence2",
     "uground": "UGround",
+    "osatlas": "OSAtlas",
+    "llava_ov": "LLaVAOV"
 }
 
 for model_name, model_class in AVAILABLE_MODELS.items():
