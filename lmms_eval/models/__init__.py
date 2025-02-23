@@ -29,6 +29,7 @@ AVAILABLE_MODELS = {
     "uipro_florence2": "UIPro_Florence2",
     "uground": "UGround",
     "osatlas": "OSAtlas",
+    "llava_ov": "LLaVAOV"
 }
 
 for model_name, model_class in AVAILABLE_MODELS.items():

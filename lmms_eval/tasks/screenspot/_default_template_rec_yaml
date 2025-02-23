@@ -86,6 +86,10 @@ model_specific_prompt_kwargs:
     format: osatlas
     post_prompt: |
       In this UI screenshot, what is the position of the element corresponding to the command "{goal_info}" (with bbox)?
+  llava_ov:
+    format: llava_ov
+    post_prompt: |
+      Provide the bounding box coordinate of the region this sentence describe. {goal_info}
 model_specific_process_kwargs:
   uipro_qwen2_vl:
     scale: 1000
