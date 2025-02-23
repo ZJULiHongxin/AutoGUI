@@ -27,12 +27,16 @@ model_specific_prompt_kwargs:
       I want to {goal_info}. Please locate the target element I should interact with. (Output the center coordinates of the target)
   autogui:
     format: autogui
-    post_prompt: |
+    ex_post_prompt: |
       Where is the "{goal_info}" element (with point)?
+    post_prompt: |
+      I will describe elements from a webpage screenshot; your role is to locate them (with point). {goal_info}
   autogui_qwen2_vl:
     format: autogui_qwen2_vl
-    post_prompt: |
+    ex_post_prompt: |
       I want to {goal_info}. Please locate the target element I should interact with. (Output the center coordinates of the target)
+    post_prompt: |
+      Locate the element according to its detailed functionality description (Output the center coordinates of the target). The element is used to {goal_info}
   seeclick:
     format: seeclick
     post_prompt: |
@@ -51,14 +55,24 @@ model_specific_prompt_kwargs:
       What are the bounding box coordinates of the element corresponding to the command "{goal_info}" in this UI screenshot?
   cogagent_chat_hf:
     format: cogagent_chat_hf
-    pre_prompt: |
-      Generate the target element according to the UI screenshot, instruction. Please provide the answer directly (with grounding). 
     post_prompt: |
-      Instruction: {goal_info}.
+      Can you point out the element specified by the command "{goal_info}" in the UI screenshot and provide the bounding box of its location? (with grounding). 
   ferretui:
     format: ferretui
     post_prompt: |
       Where is the the element used to "{goal_info}"?
+  uground:
+    format: uground
+    post_prompt: |
+      Your task is to help the user identify the precise coordinates (x, y) of a specific area/element/object on the screen based on a description.
+
+      - Your response should aim to point to the center or a representative point within the described area/element/object as accurately as possible.
+      - If the description is unclear or ambiguous, infer the most relevant area or element based on its likely context or purpose.
+      - Your answer should be a single string (x, y) corresponding to the point of the interest.
+
+      Description: {goal_info}
+
+      Answer:
   osatlas:
     format: osatlas
     post_prompt: |
@@ -75,7 +89,7 @@ model_specific_process_kwargs:
   ferretui:
     scale: 1000
   autogui:
-    scale: 1000
+    scale: 100
   autogui_qwen2_vl:
     scale: 1000
   uipro:
@@ -96,7 +110,11 @@ model_specific_process_kwargs:
     scale: 1000
   llava_hf:
     scale: 100
+  uground:
+    scale: 1000
   osatlas:
+    scale: 1000
+  cogagent_chat_hf:
     scale: 1000
 metric_list: # extract the value according to the metric: "key". Thus, the process_results should output the {key1: , key2: ...}
   - metric: motif_gnd_result

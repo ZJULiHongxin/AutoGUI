@@ -1,1 +1,0 @@
-python3 -m accelerate.commands.launch --num_processes 1 --main_process_port 14349 -m lmms_eval --model slime --model_args pretrained=path/to/huggingface/hub/SliME-Llama3-8B,device_map=auto --tasks func_pred_rec --batch_size 1 --log_samples --log_samples_suffix test --output_path ./logs/

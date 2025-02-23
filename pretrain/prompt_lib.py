@@ -53,7 +53,9 @@ def get_llava_prompt(is_v16, add_special_tokens=True, output_box=True):
     
     if add_special_tokens:
         prompt = f'{LLAVA16_START}{LLAVA_IMAGE_PLACEHOLDER}{prompt}{LLAVA16_END}' if is_v16 else f'{LLAVA15_START}{LLAVA_IMAGE_PLACEHOLDER}{prompt}{LLAVA15_END}'
-    
+    else:
+        prompt = f'{LLAVA_IMAGE_PLACEHOLDER}{prompt}'
+
     return prompt
 
 POSITION_PROMPT = """In this UI screenshot, what is the position of the element corresponding to the description "{}"? Output the normalized X and Y coordinates, ranging from 0.00 to 1.00. Note that the X-axis runs horizontally from left (0.00) to right (1.00), and the Y-axis runs vertically from top (0.00) to bottom (1.00). Your should carefully view the image before finally predicting the required position in the format [X, Y] (two decimal places). Your answer MUST only include the coordiniates withou any explanations."""
