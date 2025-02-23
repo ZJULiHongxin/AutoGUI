@@ -25,6 +25,10 @@ model_specific_prompt_kwargs:
     format: uipro_florence2
     post_prompt: |
       I want to {goal_info}. Please locate the target element I should interact with. (Output the center coordinates of the target)
+  autogui_llava:
+    format: autogui_llava
+    post_prompt: |
+      I want to {goal_info}. Please locate the target element I should interact with. (Output the center coordinates of the target)
   autogui:
     format: autogui
     post_prompt: |
@@ -73,6 +77,8 @@ model_specific_process_kwargs:
   autogui:
     scale: 1000
   autogui_qwen2_vl:
+    scale: 1000
+  autogui_llava:
     scale: 1000
   uipro:
     scale: 100

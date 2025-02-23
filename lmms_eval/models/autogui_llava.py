@@ -20,8 +20,8 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 from colorama import Fore, Style
 
-@register_model("uipro")
-class UIPro(lmms):
+@register_model("autogui_llava")
+class AutoGUILLaVA(lmms):
     def __init__(
         self,
         pretrained: str = '',
@@ -209,7 +209,7 @@ class UIPro(lmms):
             #     elif not isinstance(until, list):
             #         raise ValueError(f"Expected `gen_kwargs['until']` to be of type Union[str,list] but got {type(until)}")
             assert self.batch_size_per_gpu == 1, "Do not support batch_size_per_gpu > 1 for now"
-            context = contexts[0]
+            context = contexts[0].strip()
 
             # Some benchmarks like MME do not contain image tokens, so we prepend them to the prompt.
             if DEFAULT_IMAGE_TOKEN not in context:
