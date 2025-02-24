@@ -42,7 +42,4 @@ for model_name, model_class in AVAILABLE_MODELS.items():
         traceback.print_exc()
         print('Invalid VLM model:', model_name, model_class)
 
-
-import hf_transfer
-
 os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
