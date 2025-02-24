@@ -1,4 +1,4 @@
-dataset_path: WebAgent/AutoGUI-v1-test
+dataset_path: AutoGUI/AutoGUI-v1-test
 output_type: generate_until
 doc_to_visual: !function utils_rec.func_gnd_doc_to_visual
 doc_to_text: !function utils_rec.func_gnd_doc_to_text

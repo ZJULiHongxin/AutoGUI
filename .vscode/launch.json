@@ -57,7 +57,7 @@
                 // "--main_process_port=14343",
                 "-m", "lmms_eval",
                 "--model", "uipro_llavaov", // seeclick, qwen_vl_chat deepseek_vl_chat
-                "--model_args", "pretrained=/mnt/nvme0n1p1/hongxin_li/ms-swift/output/v15-20250217-083244/checkpoint-342,device_map=auto",
+                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0223_llava-onevision-qwen2-0.5b-ov_SSpotOverfit/checkpoint-360,device_map=auto",
                 "--tasks", "screenspot_rec", // func_pred_rec, screenspot_rec, screenspot_v2_rec, motif, refexp, vwb_eg, vwb_ag
                 "--batch_size", "1",
                 "--log_samples",
