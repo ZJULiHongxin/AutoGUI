@@ -4,12 +4,11 @@ from tqdm import tqdm
 from lmms_eval import utils
 from lmms_eval.api.instance import Instance
 from lmms_eval.api.model import lmms
-from PIL import Image
 from lmms_eval.api.registry import register_model
 from accelerate import Accelerator, DistributedType
 from accelerate.state import AcceleratorState
 from typing import List, Optional, Union, Tuple
-from transformers import AutoModelForCausalLM, LlamaTokenizer
+from transformers import AutoProcessor, LlavaOnevisionForConditionalGeneration
 from colorama import Fore, Style
 import warnings
 
@@ -17,28 +16,16 @@ warnings.filterwarnings("ignore")
 
 eval_logger = logging.getLogger("lmms-eval")
 
-@register_model("cogagent_chat_hf")
-class CogAgentChatHf(lmms):
-    """
-    Cogagent Chat Model from Hugging Face # from https://huggingface.co/THUDM/cogagent-chat-hf
-    
-    Example usage:
-    
-    CUDA_VISIBLE_DEVICES=0,1,2,3 accelerate launch --num_processes=4 -m lmms_eval \
-        --model cogagent_chat_hf 
-        --model_args pretrained=THUDM/cogagent-chat-hf,device_map='' 
-        --tasks motif_bbox_test 
-        --batch_size 1 
-        --log_samples 
-        --log_samples_suffix cogagent-chat-hf_motif_bbox_test 
-        --output_path ./logs/
-    """
+DEFAULT_IMAGE_TOKEN = "<image>"
 
+
+@register_model("uipro_llavaov")
+class UIProLlavaOneVision(lmms):
     def __init__(
         self,
-        pretrained: str = "THUDM/cogagent-chat-hf",
+        pretrained: str = "llava-hf/llava-onevision-qwen2-0.5b-ov-hf",
         revision: str = "main",
-        device: str = "cuda:0",
+        device: str = "cuda",
         dtype: Optional[Union[str, torch.dtype]] = "auto",
         batch_size: int = 1,
         trust_remote_code: Optional[bool] = False,
@@ -46,6 +33,8 @@ class CogAgentChatHf(lmms):
         device_map: str = "",
         chat_template: Optional[str] = None,
         use_cache: bool = True,
+        max_new_tokens: Optional[int] = 32,
+        resize: Optional[int] = 768,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -61,12 +50,18 @@ class CogAgentChatHf(lmms):
             self.device_map = device_map
         if isinstance(dtype, str) and dtype != "auto":
             dtype = getattr(torch, dtype)
-        self._model = AutoModelForCausalLM.from_pretrained(pretrained, local_files_only=True, torch_dtype=dtype, low_cpu_mem_usage=True, trust_remote_code=True, device_map=self.device_map).eval()
-        self._tokenizer =  LlamaTokenizer.from_pretrained('lmsys/vicuna-7b-v1.5')
+        self._model = LlavaOnevisionForConditionalGeneration.from_pretrained(pretrained, revision=revision, torch_dtype=dtype, device_map=self.device_map, trust_remote_code=trust_remote_code, attn_implementation=attn_implementation)
+        self._image_processor = AutoProcessor.from_pretrained(pretrained, revision=revision, trust_remote_code=trust_remote_code)
+        # Pad from left for batched generation: https://huggingface.co/docs/transformers/v4.39.3/en/model_doc/llava#usage-tips
+        self._image_processor.tokenizer.padding_side = "left"
+        self._tokenizer = self._image_processor.tokenizer
         self._config = self._model.config
         self.batch_size_per_gpu = int(batch_size)
         self.chat_template = chat_template
         self.use_cache = use_cache
+        self.max_new_tokens = max_new_tokens
+        self.resize = resize
+        
         if accelerator.num_processes > 1 and device_map == "":
             assert accelerator.distributed_type in [DistributedType.FSDP, DistributedType.MULTI_GPU, DistributedType.DEEPSPEED], "Unsupported distributed type provided. Only DDP and FSDP are supported."
             # If you want to use DistributedType.DEEPSPEED, you have to run accelerate config before using the model
@@ -97,7 +92,7 @@ class CogAgentChatHf(lmms):
             self.model.to(self._device)
             self._rank = 0
             self._word_size = 1
-    
+
     @property
     def config(self):
         # return the associated transformers.AutoConfig for the given pretrained model.
@@ -106,7 +101,7 @@ class CogAgentChatHf(lmms):
     @property
     def tokenizer(self):
         return self._tokenizer
-    
+
     @property
     def model(self):
         # returns the model, unwrapping it if using Accelerate
@@ -114,7 +109,7 @@ class CogAgentChatHf(lmms):
             return self.accelerator.unwrap_model(self._model)
         else:
             return self._model
-    
+
     @property
     def eot_token_id(self):
         # we use EOT because end of *text* is more accurate for what we're doing than end of *sentence*
@@ -131,11 +126,7 @@ class CogAgentChatHf(lmms):
     @property
     def device(self):
         return self._device
-    
-    @property
-    def dtype(self):
-        return self._model.dtype
-    
+
     @property
     def rank(self):
         return self._rank
@@ -143,7 +134,7 @@ class CogAgentChatHf(lmms):
     @property
     def world_size(self):
         return self._world_size
-    
+
     def tok_encode(self, string: str, left_truncate_len=None, add_special_tokens=None) -> List[int]:
         """ """
         add_special_tokens = False if add_special_tokens is None else add_special_tokens
@@ -155,11 +146,9 @@ class CogAgentChatHf(lmms):
 
     def tok_decode(self, tokens):
         return self.tokenizer.decode(tokens)
-    
+
     def loglikelihood(self, requests: List[Instance]) -> List[Tuple[float, bool]]:
         pass
-
-
 
     def flatten(self, input):
         new_list = []
@@ -167,7 +156,7 @@ class CogAgentChatHf(lmms):
             for j in i:
                 new_list.append(j)
         return new_list
-    
+
     def generate_until(self, requests: List[Instance]) -> List[str]:
         res = []
 
@@ -180,27 +169,6 @@ class CogAgentChatHf(lmms):
             # - any OOMs will happen right away rather than near the end
             toks = self.tok_encode(x[0])
             return -len(toks), x[0]
-        
-        def collate_fn(features, tokenizer) -> dict:
-            images = [feature.pop('images') for feature in features]
-            tokenizer.padding_side = 'left'
-            padded_features = tokenizer.pad(features)
-            inputs = {**padded_features, 'images': images}
-            return inputs
-        
-
-        def recur_move_to(item, tgt, criterion_func):
-            if criterion_func(item):
-                device_copy = item.to(tgt)
-                return device_copy
-            elif isinstance(item, list):
-                return [recur_move_to(v, tgt, criterion_func) for v in item]
-            elif isinstance(item, tuple):
-                return tuple([recur_move_to(v, tgt, criterion_func) for v in item])
-            elif isinstance(item, dict):
-                return {k: recur_move_to(v, tgt, criterion_func) for k, v in item.items()}
-            else:
-                return item
 
         # we group requests by their generation_kwargs,
         # so that we don't try to execute e.g. greedy sampling and temp=0.8 sampling
@@ -229,21 +197,25 @@ class CogAgentChatHf(lmms):
                     until = [until]
                 elif not isinstance(until, list):
                     raise ValueError(f"Expected `gen_kwargs['until']` to be of type Union[str,list] but got {type(until)}")
-                
-            # batch infernece: https://github.com/THUDM/CogVLM/issues/143
-            samples = []
-            for visual, context in zip(visuals, contexts):
-                sample = self.model.build_conversation_input_ids(self.tokenizer, query=context, history=[], images=[visual])
-                samples.append(sample)
-            inputs = collate_fn(samples, self.tokenizer)
-            inputs = recur_move_to(inputs, 'cuda', lambda x: isinstance(x, torch.Tensor))
-            inputs = recur_move_to(inputs, self.dtype, lambda x: isinstance(x, torch.Tensor) and torch.is_floating_point(x))
+            assert self.batch_size_per_gpu == 1, "Do not support batch_size_per_gpu > 1 for now"
+            context = contexts[0]
+            context = context.replace(DEFAULT_IMAGE_TOKEN, "").strip()
+            conversation = [
+                {
 
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": context},
+                    {"type": "image"},
+                    ],
+                },
+            ]
+            prompt = self._image_processor.apply_chat_template(conversation, add_generation_prompt=True)
             
-
+            img = visuals[0].resize((self.resize, self.resize)) if max(visuals[0].size) > self.resize else visuals[0]
+            inputs = self._image_processor(images=img, text=prompt, return_tensors="pt").to(self._device, self.model.dtype)
+            
             gen_kwargs["image_sizes"] = [visuals[idx].size for idx in range(len(visuals))]
-            if "max_new_tokens" not in gen_kwargs:
-                gen_kwargs["max_new_tokens"] = 1024
             if "temperature" not in gen_kwargs:
                 gen_kwargs["temperature"] = 0
             if "top_p" not in gen_kwargs:
@@ -254,25 +226,26 @@ class CogAgentChatHf(lmms):
                 cont = self.model.generate(
                     **inputs,
                     do_sample=True if gen_kwargs["temperature"] > 0 else False,
-                    temperature = gen_kwargs["temperature"],
+                    temperature=gen_kwargs["temperature"],
                     top_p=gen_kwargs["top_p"],
                     num_beams=gen_kwargs["num_beams"],
-                    max_new_tokens=gen_kwargs["max_new_tokens"],
+                    max_new_tokens=self.max_new_tokens,
                     use_cache=self.use_cache,
                 )
             except Exception as e:
                 eval_logger.error(f"Error {e} in generating")
                 cont = ""
-            
-            outputs = cont[:, inputs['input_ids'].shape[1]:]
-            for i in range(len(samples)):
-                text_outputs = self.tokenizer.decode(outputs[i]).split("</s>")[0].strip()
-                print(f"Generated text for doc ID {doc_id[i]}:")
-                print(Fore.CYAN + f"prompt: {contexts[i]}")
+            text_outputs = self.tokenizer.batch_decode(cont, skip_special_tokens=True)[0]
+            text_outputs = text_outputs.split("ASSISTANT:")[-1].strip()
+
+            if self._rank == 0 and doc_id[0] % 5 == 0:
+                print(f"Generated text for doc ID {doc_id[0]}:")
+                print(Fore.CYAN + f"prompt: {context}")
                 print(Fore.YELLOW + f"response:{text_outputs}\n" + Style.RESET_ALL)
-                res.append({'prompt': contexts[i], 'response': text_outputs})
-                self.cache_hook.add_partial("generate_until", (contexts[i], gen_kwargs), text_outputs)
-                pbar.update(1)
+
+            res.append({'prompt':context, 'response':text_outputs})
+            self.cache_hook.add_partial("generate_until", (context, gen_kwargs), text_outputs)
+            pbar.update(1)
         # reorder this group of results back to original unsorted form
         res = re_ords.get_original(res)
 

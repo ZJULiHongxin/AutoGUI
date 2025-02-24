@@ -44,7 +44,7 @@
                 // },
         },
         {
-            "name": "eval-seeclick",
+            "name": "eval-llava_onevision",
             "type": "debugpy",
             "request": "launch",
             "module": "accelerate.commands.launch",
@@ -56,12 +56,39 @@
                 // "--gpu_ids", "0",
                 // "--main_process_port=14343",
                 "-m", "lmms_eval",
-                "--model", "seeclick", // seeclick, qwen_vl_chat deepseek_vl_chat
-                "--model_args", "pretrained=cckevinn/SeeClick-aitw", // Qwen/Qwen-VL-Chat
-                "--tasks", "aitw", // func_pred_rec, screenspot_rec, motif
+                "--model", "uipro_llavaov", // seeclick, qwen_vl_chat deepseek_vl_chat
+                "--model_args", "pretrained=/mnt/nvme0n1p1/hongxin_li/ms-swift/output/v15-20250217-083244/checkpoint-342,device_map=auto",
+                "--tasks", "screenspot_rec", // func_pred_rec, screenspot_rec, screenspot_v2_rec, motif, refexp, vwb_eg, vwb_ag
                 "--batch_size", "1",
                 "--log_samples",
                 "--log_samples_suffix", "test",
+                "--output_path", "./logs/",
+                //"--limit", "0.01"
+                // "--verbosity", "DEBUG"
+                ],
+                // "env": {
+                //     "CUDA_VISIBLE_DEVICES": "0",
+                // },
+        },
+        {
+            "name": "eval-cogagent",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--num_processes=1",
+                // "--gpu_ids", "0",
+                // "--main_process_port=14343",
+                "-m", "lmms_eval",
+                "--model", "cogagent_chat_hf", // seeclick, qwen_vl_chat deepseek_vl_chat
+                "--model_args", "pretrained=THUDM/cogagent-chat-hf,device_map=auto", // Qwen/Qwen-VL-Chat
+                "--tasks", "screenspot_v2_rec", // func_pred_rec, screenspot_rec, motif
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "cogagent_chat_hf",
                 "--output_path", "./logs/",
                 //"--limit", "0.01"
                 // "--verbosity", "DEBUG"
@@ -110,8 +137,8 @@
                 // "--main_process_port=14343",
                 "-m", "lmms_eval",
                 "--model", "autogui", // seeclick, qwen_vl_chat deepseek_vl_chat
-                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/autogui_ckpt/1127_QwenVL_WidCap-ElemGnd101k",
-                "--tasks", "func_pred_rec,screenspot_rec,motif,vwb,refexp", // func_pred_rec,screenspot_rec,motif,vwb,refexp
+                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0926_Qwen_AutoGUI_SeeClick",
+                "--tasks", "motif", // func_pred_rec,screenspot_rec,motif,vwb,refexp
                 "--batch_size", "1",
                 "--log_samples",
                 "--log_samples_suffix", "test",
@@ -189,12 +216,12 @@
                 // "--gpu_ids", "0",
                 "--main_process_port=17849",
                 "-m", "lmms_eval",
-                "--model", "autogui_llava", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
-                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0213_LLaVA-Qwen2-0.5B-Instruct_5MBoxQAs+SSpotOverfit,device_map=auto,max_new_tokens=32",
-                "--tasks", "screenspot_rec", // func_pred_rec,screenspot_rec,motif,vwb,refexp
+                "--model", "uipro", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0922_SLIME_Llama3-8B_AutoGUI702k,device_map=auto,max_new_tokens=32",
+                "--tasks", "screenspot_v2_rec", // func_pred_rec,screenspot_rec,motif,vwb,refexp
                 "--batch_size", "1",
                 "--log_samples",
-                "--log_samples_suffix", "0213_LLaVA-Qwen2-0.5B-Instruct_5MBoxQAs+SSpotOverfit",
+                "--log_samples_suffix", "0922_SLIME_Llama3-8B_AutoGUI702k",
                 "--output_path", "./logs/",
                 //"--limit", "0.005"
                 // "--verbosity", "DEBUG"
@@ -245,11 +272,11 @@
                 "--main_process_port=16849",
                 "-m", "lmms_eval",
                 "--model", "uipro_florence2", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
-                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0210_UIPro-Florence-Large/checkpoint-36200,device_map=auto",
+                "--model_args", "pretrained=/home/jingran_su/uipro_ckpt/0210_UIPro-Florence-Large/checkpoint-18100,device_map=auto",
                 "--tasks", "func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp", // func_pred_rec,screenspot_rec,motif,vwb,refexp
                 "--batch_size", "1",
                 "--log_samples",
-                "--log_samples_suffix", "0210_UIPro-Florence-Large_2E",
+                "--log_samples_suffix", "0210_UIPro-Florence-Large_1E",
                 "--output_path", "./logs/",
                 //"--limit", "0.005"
                 // "--verbosity", "DEBUG"
@@ -326,12 +353,12 @@
                 "--main_process_port=16849",
                 "-m", "lmms_eval",
                 "--model", "qwen2_vl", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
-                "--model_args", "pretrained=Qwen/Qwen2-VL-2B-Instruct",
+                "--model_args", "pretrained=Qwen/Qwen2-VL-7B-Instruct",
                 //"--model_args", "model=Qwen/Qwen2-VL-72B-Instruct,server=hyperbolic,resize=644",
                 "--tasks", "func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp", // func_pred_rec,screenspot_rec,motif,vwb_eg,vwb_ag,refexp
                 "--batch_size", "1",
                 "--log_samples",
-                "--log_samples_suffix", "Qwen2-VL-2B-Instruct",
+                "--log_samples_suffix", "Qwen2-VL-7B-Instruct",
                 "--output_path", "./logs/",
                 //"--limit", "0.005"
                 // "--verbosity", "DEBUG"
@@ -357,11 +384,42 @@
                 "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0119_AutoGUI_Qwen2VL-7B_Web-EMu-Andcon-MobileViews_FuncGnd+IntentGndFormat_966k/lora/checkpoint-7545",
                 //"--model_args", "model=Qwen/Qwen2-VL-72B-Instruct,server=hyperbolic,resize=644",
                 "--tasks", "func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp", // func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp
+                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0119_AutoGUI_Qwen2VL-7B_Web-EMu-Andcon-MobileViews_FuncGnd_490k/lora/checkpoint-7664",
+                //"--model_args", "model=Qwen/Qwen2-VL-72B-Instruct,server=hyperbolic,resize=644",
+                "--tasks", "func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp", // func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp
                 "--batch_size", "1",
                 "--log_samples",
-                "--log_samples_suffix", "0119_AutoGUI_Qwen2VL-7B_Web-EMu-Andcon-MobileViews_FuncGnd+IntentGndFormat_966k",
+                "--log_samples_suffix", "0119_AutoGUI_Qwen2VL-7B_Web-EMu-Andcon-MobileViews_FuncGnd_490k",
                 "--output_path", "./logs/",
                 "--limit", "0.02"
+                // "--verbosity", "DEBUG"
+                ],
+                "env": {
+                    "HYPERBOLIC_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaGVldGNvcGlsb3RAZ21haWwuY29tIiwiaWF0IjoxNzMxODI4NjQxfQ.YpW7EdcuVoYD5IyKetckAYJsSiOAD8uNiMFAM8lkTgI",
+                },
+        },
+        {
+            "name": "eval-uground",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--num_processes=1",
+                // "--gpu_ids", "0",
+                "--main_process_port=16849",
+                "-m", "lmms_eval",
+                "--model", "uground", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0121_AutoGUI_UGround_Web-EMu-Andcon-MobileViews_FuncGnd-IntentGndFormat_490k/lora/checkpoint-3828",
+                //"--model_args", "model=Qwen/Qwen2-VL-72B-Instruct,server=hyperbolic,resize=644",
+                "--tasks", "func_pred_rec", // func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "0119_AutoGUI_Qwen2VL-7B_Web-EMu-Andcon-MobileViews_FuncGnd_490k",
+                "--output_path", "./logs/",
+                "--limit", "0.005"
                 // "--verbosity", "DEBUG"
                 ],
                 "env": {

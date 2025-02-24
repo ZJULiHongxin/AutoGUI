@@ -98,7 +98,7 @@ python3 -m accelerate.commands.launch
     -m lmms_eval \
     --model autogui \
     --model_args pretrained=WebAgent/AutoGUI-Qwen-v0.1-LoRA \
-    --tasks func_pred_rec \
+    --tasks func_pred_rec,screenspot_rec \
     --batch_size 1 \
     --log_samples \
     --log_samples_suffix autogui_funcpred \
@@ -106,9 +106,9 @@ python3 -m accelerate.commands.launch
     ["--limit", "0.01"] \ # For debugging
 ```
 
-The evaluation tasks used in our paper include: `func_pred_rec`, `screenspot_rec`, `refexp`, `motif`, `vwb`.
+The evaluation tasks used in our paper include: `func_pred_rec`, `screenspot_rec`, `screenspot_V2_rec`, `refexp`, `motif`, `vwb_ag`, `vwb_eg`.
 
-The supported models include: `autogui`, `qwen_vl_chat`, `llava_sglang`, `llava_hf`, `deepseek_vl_chat.py`, `cogagent`, `llava_hf`. If `autogui` is used, the `pretrained` argument can be either a LoRA model path that contains only the adapter or a merged model path.
+The supported models include: `autogui`, `qwen_vl_chat`, `llava_sglang`, `llava_hf`, `deepseek_vl_chat.py`, `cogagent`, `llava_hf`, `qwen2_vl`, `ferret_ui` (Please see `lmms_eval/models`). If `autogui` is used, the `pretrained` argument can be either a LoRA model path that contains only the adapter or a merged model path.
 
 
 ## Acknowledgement
