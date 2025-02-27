@@ -57,13 +57,13 @@
                 // "--main_process_port=14343",
                 "-m", "lmms_eval",
                 "--model", "uipro_llavaov", // seeclick, qwen_vl_chat deepseek_vl_chat
-                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0223_llava-onevision-qwen2-0.5b-ov_SSpotOverfit/checkpoint-360,device_map=auto",
-                "--tasks", "screenspot_rec", // func_pred_rec, screenspot_rec, screenspot_v2_rec, motif, refexp, vwb_eg, vwb_ag
+                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0223_llava-onevision-qwen2-0.5b-ov_UIPro+AgenTaskIntentGnd_4288k/checkpoint-26928,device_map=auto",
+                "--tasks", "func_pred_rec, screenspot_rec, screenspot_v2_rec, motif, refexp, vwb_eg, vwb_ag", // func_pred_rec, screenspot_rec, screenspot_v2_rec, motif, refexp, vwb_eg, vwb_ag
                 "--batch_size", "1",
                 "--log_samples",
-                "--log_samples_suffix", "test",
+                "--log_samples_suffix", "0223_llava-onevision-qwen2-0.5b-ov_UIPro+AgenTaskIntentGnd_4288k",
                 "--output_path", "./logs/",
-                //"--limit", "0.01"
+                "--limit", "0.01"
                 // "--verbosity", "DEBUG"
                 ],
                 // "env": {
@@ -279,6 +279,34 @@
                 "--log_samples_suffix", "0210_UIPro-Florence-Large_1E",
                 "--output_path", "./logs/",
                 //"--limit", "0.005"
+                // "--verbosity", "DEBUG"
+                ],
+                // "env": {
+                //     "CUDA_VISIBLE_DEVICES": "5",
+                // },
+        },
+
+        {
+            "name": "eval-uipro_internvl2",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--num_processes=8",
+                // "--gpu_ids", "0",
+                "--main_process_port=16849",
+                "-m", "lmms_eval",
+                "--model", "uipro_internvl2", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0225_InternVL2.5-1B_UIPro+AgenTaskIntentGnd_4288k_LoRA/merged,device_map=auto",
+                "--tasks", "func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp", // func_pred_rec,screenspot_rec,motif,vwb,refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "0225_InternVL2.5-1B_UIPro+AgenTaskIntentGnd_4288k_LoRA_2E",
+                "--output_path", "./logs/",
+                //"--limit", "0.05"
                 // "--verbosity", "DEBUG"
                 ],
                 // "env": {
