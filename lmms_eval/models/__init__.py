@@ -8,6 +8,7 @@ AVAILABLE_MODELS = {
     "autogui_llava": "AutoGUILLaVA",
     'uipro': "UIPro",
     "uipro_llavaov": "UIProLlavaOneVision",
+    "uipro_internvl2": "UIPro_InternVL2",
     "llava_model": "Llava",
     "llava_hf": "LlavaHf",
     "llava_sglang": "LlavaSglang",

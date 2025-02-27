@@ -40,6 +40,10 @@ model_specific_prompt_kwargs:
     format: uipro_llavaov
     post_prompt: |
       Where is the "{goal_info}" element?
+  uipro_internvl2:
+    format: uipro_internvl2
+    post_prompt: |
+      Locate the element according to its detailed functionality description. {goal_info} (Output the bounding box coordinates of the target)
   autogui:
     format: autogui
     post_prompt: |
@@ -105,6 +109,10 @@ model_specific_process_kwargs:
     scale: 1000
   uipro:
     scale: 100
+  uipro_llavaov
+    scale: 1000
+  uipro_internvl2:
+    scale: 1000
   qwen_vl_chat:
     scale: 1000
   qwen2_vl:
