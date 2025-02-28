@@ -47,6 +47,10 @@ model_specific_prompt_kwargs:
     format: uipro_florence2
     post_prompt: |
       I want to {goal_info}. Please locate the target element I should interact with. (Output the center coordinates of the target)
+  autogui_llava:
+    format: autogui_llava
+    post_prompt: |
+      Where is the {goal_info} element? (Output the center coordinates of the target)  
   autogui:
     format: random
   autogui_qwen2_vl:
@@ -79,10 +83,20 @@ model_specific_prompt_kwargs:
       Where is the "{goal_info}"?
   cogagent_chat_hf:
     format: cogagent_chat_hf
-    pre_prompt: |
-      Generate the target element according to the UI screenshot, instruction. Please provide the answer directly (with grounding). 
     post_prompt: |
-      Instruction: {goal_info}.
+      Can you point out the element specified by the command "{goal_info}" in the UI screenshot and provide the bounding box of its location? (with grounding). 
+  uground:
+    format: uground
+    post_prompt: |
+      Your task is to help the user identify the precise coordinates (x, y) of a specific area/element/object on the screen based on a description.
+
+      - Your response should aim to point to the center or a representative point within the described area/element/object as accurately as possible.
+      - If the description is unclear or ambiguous, infer the most relevant area or element based on its likely context or purpose.
+      - Your answer should be a single string (x, y) corresponding to the point of the interest.
+
+      Description: {goal_info}
+
+      Answer:
   osatlas:
     format: osatlas
     post_prompt: |
@@ -91,6 +105,8 @@ model_specific_process_kwargs:
   ferretui:
     scale: 1000
   autogui:
+    scale: 1000
+  autogui_llava:
     scale: 1000
   autogui_qwen2_vl:
     scale: 1000
@@ -116,5 +132,9 @@ model_specific_process_kwargs:
     scale: 1000
   llava_hf:
     scale: 100
+  uground:
+    scale: 1000
   osatlas:
+    scale: 1000
+  cogagent_chat_hf:
     scale: 1000

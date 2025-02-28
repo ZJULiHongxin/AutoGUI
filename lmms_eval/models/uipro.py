@@ -100,6 +100,8 @@ class UIPro(lmms):
             self.conv_mode = 'gemma'
 
             self.model.generation_config.eos_token_id = 107 # '<end_of_turn>'
+        elif 'qwen' in pretrained.lower():
+            self.conv_mode = 'qwen2'
 
     @property
     def config(self):

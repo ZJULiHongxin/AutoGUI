@@ -86,15 +86,15 @@ def vwb_doc_to_text(doc, model_name='', model_specific_prompt_kwargs=None):
             if "pre_prompt" in model_specific_prompt_kwargs:
                 pre_prompt = model_specific_prompt_kwargs["pre_prompt"]
             if "post_prompt" in model_specific_prompt_kwargs:
-                # if model_name == 'uipro' and doc['task'] == 'elem-gnd':
-                #     model_specific_prompt_kwargs["post_prompt"] = "Locate the text \"{goal_info}\". (with bbox)"
+                if model_name == 'uipro' and doc['task'] == 'elem-gnd':
+                    model_specific_prompt_kwargs["post_prompt"] = "Locate the text \"{goal_info}\". (with bbox)"
 
                 post_prompt = model_specific_prompt_kwargs["post_prompt"].format(goal_info=instruc)
             
             prompt = f"{pre_prompt}{post_prompt}"
     
     # if the we require a box-format output, the prompt should be modified accordingly
-    return prompt
+    return prompt.strip()
 
 
 

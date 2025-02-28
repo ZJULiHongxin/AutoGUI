@@ -1,0 +1,484 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+
+    //python -m accelerate.commands.launch --num_processes=1 --main_process_port=16849 -m lmms_eval --model slime --model_args pretrained=/data0/jingran/workspace/hongxin_li/highres_autogui/checkpoints/0922_SLIME_Llama3-8B_AutoGUI702k,device_map=auto --tasks func_pred_rec,screenspot_rec,motif,vwb,refexp --batch_size 1 --log_samples --log_samples_suffix test --output_path ./logs/
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0",
+            },
+        },
+        {
+            "name": "eval-llava_hf",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--num_processes=1",
+                // "--gpu_ids", "0",
+                // "--main_process_port=14343",
+                "-m", "lmms_eval",
+                "--model", "llava_hf", // seeclick, qwen_vl_chat deepseek_vl_chat
+                "--model_args", "device_map=auto",
+                "--tasks", "func_pred_rec, screenspot_rec, motif, vwb, refexp", // func_pred_rec, screenspot_rec, motif
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "test",
+                "--output_path", "./logs/",
+                // "--limit", "0.005"
+                // "--verbosity", "DEBUG"
+                ],
+                // "env": {
+                //     "CUDA_VISIBLE_DEVICES": "0",
+                // },
+        },
+        {
+            "name": "eval-llava_onevision",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--num_processes=8",
+                // "--gpu_ids", "0",
+                // "--main_process_port=14343",
+                "-m", "lmms_eval",
+                "--model", "uipro_llavaov", // seeclick, qwen_vl_chat deepseek_vl_chat
+                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0223_IJCV-UIPro-Florence-Large+AgentTaskIntentGnd_4295k/checkpoint-33556,device_map=auto",
+                "--tasks", "func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,refexp,vwb_eg,vwb_ag", // func_pred_rec, screenspot_rec, screenspot_v2_rec, motif, refexp, vwb_eg, vwb_ag
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "0223_IJCV-UIPro-Florence-Large+AgentTaskIntentGnd_4295k_2E",
+                "--output_path", "./logs/",
+                "--limit", "0.01"
+                // "--verbosity", "DEBUG"
+                ],
+                // "env": {
+                //     "CUDA_VISIBLE_DEVICES": "0",
+                // },
+        },
+        {
+            "name": "eval-cogagent",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--num_processes=1",
+                // "--gpu_ids", "0",
+                // "--main_process_port=14343",
+                "-m", "lmms_eval",
+                "--model", "cogagent_chat_hf", // seeclick, qwen_vl_chat deepseek_vl_chat
+                "--model_args", "pretrained=THUDM/cogagent-chat-hf,device_map=auto", // Qwen/Qwen-VL-Chat
+                "--tasks", "screenspot_v2_rec", // func_pred_rec, screenspot_rec, motif
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "cogagent_chat_hf",
+                "--output_path", "./logs/",
+                //"--limit", "0.01"
+                // "--verbosity", "DEBUG"
+                ],
+                "env": {
+                    "CUDA_VISIBLE_DEVICES": "4",
+                },
+        },
+        {
+            "name": "eval-qwen",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--num_processes=1",
+                // "--gpu_ids", "0",
+                // "--main_process_port=14343",
+                "-m", "lmms_eval",
+                "--model", "qwen_vl_chat", // seeclick, qwen_vl_chat deepseek_vl_chat
+                "--tasks", "vwb", // func_pred_rec, screenspot_rec, motif, refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "test",
+                "--output_path", "./logs/",
+                // "--limit", "0.01"
+                // "--verbosity", "DEBUG"
+                ],
+                "env": {
+                    "CUDA_VISIBLE_DEVICES": "2",
+                },
+        },
+        {
+            "name": "eval-autogui",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--num_processes=1",
+                // "--gpu_ids", "0",
+                // "--main_process_port=14343",
+                "-m", "lmms_eval",
+                "--model", "autogui", // seeclick, qwen_vl_chat deepseek_vl_chat
+                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0926_Qwen_AutoGUI_SeeClick",
+                "--tasks", "motif", // func_pred_rec,screenspot_rec,motif,vwb,refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "test",
+                "--output_path", "./logs/",
+                //"--limit", "0.01"
+                // "--verbosity", "DEBUG"
+                ],
+                "env": {
+                    "CUDA_VISIBLE_DEVICES": "0",
+                },
+        },
+        {
+            "name": "eval-monkey",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--num_processes=1",
+                // "--gpu_ids", "0",
+                // "--main_process_port=14343",
+                "-m", "lmms_eval",
+                "--model", "monkey", // seeclick, qwen_vl_chat deepseek_vl_chat
+                "--model_args", "pretrained=echo840/Monkey",
+                "--tasks", "func_pred_rec, screenspot_rec, motif, vwb, refexp", // func_pred_rec, screenspot_rec, motif, vwb, refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "test",
+                "--output_path", "./logs/",
+                //"--limit", "0.01"
+                // "--verbosity", "DEBUG"
+                ],
+                "env": {
+                    "CUDA_VISIBLE_DEVICES": "0",
+                },
+        },
+        {
+            "name": "eval-minicpmv",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--num_processes=1",
+                // "--gpu_ids", "0",
+                "--main_process_port=16849",
+                "-m", "lmms_eval",
+                "--model_args", "pretrained=/mnt/nvme1n1p1/hongxin_li/hf_home/hub/models--openbmb--MiniCPM-V-2_6/snapshots/4e4be000cd81feda8b96d14b53f1791b4010b038", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--tasks", "screenspot_rec", // func_pred_rec,screenspot_rec,motif,vwb,refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "test",
+                "--output_path", "./logs/",
+                "--limit", "0.05"
+                // "--verbosity", "DEBUG"
+                ],
+                // "env": {
+                //     "CUDA_VISIBLE_DEVICES": "5",
+                // },
+        },
+        {
+            "name": "eval-slime",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--num_processes=1",
+                // "--gpu_ids", "0",
+                "--main_process_port=17849",
+                "-m", "lmms_eval",
+                "--model", "uipro", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0922_SLIME_Llama3-8B_AutoGUI702k,device_map=auto,max_new_tokens=32",
+                "--tasks", "screenspot_v2_rec", // func_pred_rec,screenspot_rec,motif,vwb,refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "0922_SLIME_Llama3-8B_AutoGUI702k",
+                "--output_path", "./logs/",
+                //"--limit", "0.005"
+                // "--verbosity", "DEBUG"
+                ],
+                // "env": {
+                //     "CUDA_VISIBLE_DEVICES": "5",
+                // },
+        },
+        {
+            "name": "eval-ferretui",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--num_processes=1",
+                // "--gpu_ids", "0",
+                "--main_process_port=17849",
+                "-m", "lmms_eval",
+                "--model", "ferretui", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--model_args", "pretrained=jadechoghari/Ferret-UI-Gemma2b",
+                "--tasks", "refexp", // func_pred_rec,screenspot_rec,motif,vwb,refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "test",
+                "--output_path", "./logs/",
+                //"--limit", "0.05"
+                // "--verbosity", "DEBUG"
+                ],
+                // "env": {
+                //     "CUDA_VISIBLE_DEVICES": "5",
+                // },
+        },
+
+        {
+            "name": "eval-uipro_florence2",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--num_processes=8",
+                // "--gpu_ids", "0",
+                "--main_process_port=16849",
+                "-m", "lmms_eval",
+                "--model", "uipro_florence2", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0225_UIPro_CoreSet_woFuncGnd/checkpoint-14827,device_map=auto",
+                "--tasks", "func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp", // func_pred_rec,screenspot_rec,motif,vwb,refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "0225_UIPro_CoreSet_woFuncGnd_1E",
+                "--output_path", "./logs/",
+                //"--limit", "0.005"
+                // "--verbosity", "DEBUG"
+                ],
+                // "env": {
+                //     "CUDA_VISIBLE_DEVICES": "5",
+                // },
+        },
+
+        {
+            "name": "eval-uipro_internvl2",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--num_processes=8",
+                // "--gpu_ids", "0",
+                "--main_process_port=16849",
+                "-m", "lmms_eval",
+                "--model", "uipro_internvl2", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0225_InternVL2.5-1B_UIPro+AgenTaskIntentGnd_4288k_LoRA/merged,device_map=auto",
+                "--tasks", "func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp", // func_pred_rec,screenspot_rec,motif,vwb,refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "0225_InternVL2.5-1B_UIPro+AgenTaskIntentGnd_4288k_LoRA_2E",
+                "--output_path", "./logs/",
+                //"--limit", "0.05"
+                // "--verbosity", "DEBUG"
+                ],
+                // "env": {
+                //     "CUDA_VISIBLE_DEVICES": "5",
+                // },
+        },
+
+        {
+            "name": "eval-tinyclick",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--num_processes=1",
+                // "--gpu_ids", "0",
+                "--main_process_port=16849",
+                "-m", "lmms_eval",
+                "--model", "tinyclick", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--model_args", "device_map=auto",
+                "--tasks", "screenspot_rec", // func_pred_rec,screenspot_rec,motif,vwb,refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "test",
+                "--output_path", "./logs/",
+                //"--limit", "0.005"
+                // "--verbosity", "DEBUG"
+                ],
+                // "env": {
+                //     "CUDA_VISIBLE_DEVICES": "5",
+                // },
+        },
+        {
+            "name": "eval-llamavision",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--num_processes=2",
+                // "--gpu_ids", "0",
+                "--main_process_port=16849",
+                "-m", "lmms_eval",
+                "--model", "llama_vision", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--tasks", "motif", // func_pred_rec,screenspot_rec,motif,vwb,refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "test",
+                "--output_path", "./logs/",
+                "--limit", "0.005"
+                // "--verbosity", "DEBUG"
+                ],
+                "env": {
+                    "HYPERBOLIC_KEY": "",
+                },
+        },
+        {
+            "name": "eval-qwen2vl",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--num_processes=1",
+                // "--gpu_ids", "0",
+                "--main_process_port=16849",
+                "-m", "lmms_eval",
+                "--model", "qwen2_vl", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--model_args", "pretrained=Qwen/Qwen2-VL-7B-Instruct",
+                //"--model_args", "model=Qwen/Qwen2-VL-72B-Instruct,server=hyperbolic,resize=644",
+                "--tasks", "func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp", // func_pred_rec,screenspot_rec,motif,vwb_eg,vwb_ag,refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "Qwen2-VL-7B-Instruct",
+                "--output_path", "./logs/",
+                //"--limit", "0.005"
+                // "--verbosity", "DEBUG"
+                ],
+                "env": {
+                    "HYPERBOLIC_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaGVldGNvcGlsb3RAZ21haWwuY29tIiwiaWF0IjoxNzMxODI4NjQxfQ.YpW7EdcuVoYD5IyKetckAYJsSiOAD8uNiMFAM8lkTgI",
+                },
+        },
+        {
+            "name": "eval-uipro_qwen2_vl_planning",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--num_processes=1",
+                // "--gpu_ids", "0",
+                "--main_process_port=16849",
+                "-m", "lmms_eval",
+                "--model", "autogui_qwen2_vl", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0119_AutoGUI_Qwen2VL-7B_Web-EMu-Andcon-MobileViews_FuncGnd+IntentGndFormat_966k/lora/checkpoint-7545",
+                //"--model_args", "model=Qwen/Qwen2-VL-72B-Instruct,server=hyperbolic,resize=644",
+                "--tasks", "func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp", // func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp
+                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0119_AutoGUI_Qwen2VL-7B_Web-EMu-Andcon-MobileViews_FuncGnd_490k/lora/checkpoint-7664",
+                //"--model_args", "model=Qwen/Qwen2-VL-72B-Instruct,server=hyperbolic,resize=644",
+                "--tasks", "func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp", // func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "0119_AutoGUI_Qwen2VL-7B_Web-EMu-Andcon-MobileViews_FuncGnd_490k",
+                "--output_path", "./logs/",
+                "--limit", "0.02"
+                // "--verbosity", "DEBUG"
+                ],
+                "env": {
+                    "HYPERBOLIC_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaGVldGNvcGlsb3RAZ21haWwuY29tIiwiaWF0IjoxNzMxODI4NjQxfQ.YpW7EdcuVoYD5IyKetckAYJsSiOAD8uNiMFAM8lkTgI",
+                },
+        },
+        {
+            "name": "eval-uground",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--num_processes=1",
+                // "--gpu_ids", "0",
+                "--main_process_port=16849",
+                "-m", "lmms_eval",
+                "--model", "uground", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0121_AutoGUI_UGround_Web-EMu-Andcon-MobileViews_FuncGnd-IntentGndFormat_490k/lora/checkpoint-3828",
+                //"--model_args", "model=Qwen/Qwen2-VL-72B-Instruct,server=hyperbolic,resize=644",
+                "--tasks", "func_pred_rec", // func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "0119_AutoGUI_Qwen2VL-7B_Web-EMu-Andcon-MobileViews_FuncGnd_490k",
+                "--output_path", "./logs/",
+                "--limit", "0.005"
+                // "--verbosity", "DEBUG"
+                ],
+                "env": {
+                    "HYPERBOLIC_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaGVldGNvcGlsb3RAZ21haWwuY29tIiwiaWF0IjoxNzMxODI4NjQxfQ.YpW7EdcuVoYD5IyKetckAYJsSiOAD8uNiMFAM8lkTgI",
+                },
+        },
+        {
+            "name": "eval-gpt4o-mini",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--num_processes=1",
+                // "--gpu_ids", "0",
+                "--main_process_port=16849",
+                "-m", "lmms_eval",
+                "--model", "claude", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--tasks", "func_pred_rec", // func_pred_rec,screenspot_rec,motif,vwb,refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "test",
+                "--output_path", "./logs/",
+                //"--limit", "0.001"
+                // "--verbosity", "DEBUG"
+                ],
+                // "env": {
+                //     "CUDA_VISIBLE_DEVICES": "5",
+                // },
+        }
+    ]
+}

@@ -32,6 +32,18 @@ model_specific_prompt_kwargs:
     format: uipro_florence2
     post_prompt: |
       Locate the element according to its detailed functionality description. {goal_info} (Output the center coordinates of the target)
+  autogui_llava:
+    format: autogui_llava
+    post_prompt: |
+      Locate the element according to its detailed functionality description. {goal_info} (Output the center coordinates of the target)
+  uipro_llavaov:
+    format: uipro_llavaov
+    post_prompt: |
+      Where is the "{goal_info}" element?
+  uipro_internvl2:
+    format: uipro_internvl2
+    post_prompt: |
+      Locate the element according to its detailed functionality description. {goal_info} (Output the bounding box coordinates of the target)
   autogui:
     format: autogui
     post_prompt: |
@@ -58,10 +70,8 @@ model_specific_prompt_kwargs:
       What are the bounding box coordinates of the element corresponding to the command "{goal_info}" in this UI screenshot?
   cogagent_chat_hf:
     format: cogagent_chat_hf
-    pre_prompt: |
-      Generate the target element according to the UI screenshot, instruction. Please provide the answer directly (with grounding). 
     post_prompt: |
-      Instruction: {goal_info}.
+      Can you point out the element specified by the command "{goal_info}" in the UI screenshot and provide the bounding box of its location? (with grounding). 
   ferretui:
     format: ferretui
     post_prompt: |
@@ -95,8 +105,14 @@ model_specific_process_kwargs:
     scale: 1000
   autogui_qwen2_vl:
     scale: 1000
+  autogui_llava:
+    scale: 1000
   uipro:
     scale: 100
+  uipro_llavaov
+    scale: 1000
+  uipro_internvl2:
+    scale: 1000
   qwen_vl_chat:
     scale: 1000
   qwen2_vl:
@@ -116,4 +132,6 @@ model_specific_process_kwargs:
   uground:
     scale: 1000
   osatlas:
+    scale: 1000
+  cogagent_chat_hf:
     scale: 1000
