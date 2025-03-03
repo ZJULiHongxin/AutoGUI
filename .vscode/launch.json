@@ -265,18 +265,18 @@
             "module": "accelerate.commands.launch",
             // "program": "",
             "console": "integratedTerminal",
-            "justMyCode": false,
+            "justMyCode": true,
             "args": [
-                "--num_processes=1",
+                "--num_processes=8",
                 // "--gpu_ids", "0",
-                "--main_process_port=16849",
+                "--main_process_port=17849",
                 "-m", "lmms_eval",
                 "--model", "uipro_florence2", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
-                "--model_args", "pretrained=/home/jingran_su/uipro_ckpt/0210_UIPro-Florence-Large/checkpoint-18100,device_map=auto",
-                "--tasks", "func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp", // func_pred_rec,screenspot_rec,motif,vwb,refexp
+                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0228_GoClick-Florence2Base_CoreSet4296k/checkpoint-33556,device_map=auto",
+                "--tasks", "func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp", // func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp
                 "--batch_size", "1",
                 "--log_samples",
-                "--log_samples_suffix", "0210_UIPro-Florence-Large_1E",
+                "--log_samples_suffix", "0228_GoClick-Florence2Base_CoreSet4296k_2E",
                 "--output_path", "./logs/",
                 //"--limit", "0.005"
                 // "--verbosity", "DEBUG"
@@ -387,6 +387,34 @@
                 "--batch_size", "1",
                 "--log_samples",
                 "--log_samples_suffix", "Qwen2-VL-7B-Instruct",
+                "--output_path", "./logs/",
+                //"--limit", "0.005"
+                // "--verbosity", "DEBUG"
+                ],
+                "env": {
+                    "HYPERBOLIC_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaGVldGNvcGlsb3RAZ21haWwuY29tIiwiaWF0IjoxNzMxODI4NjQxfQ.YpW7EdcuVoYD5IyKetckAYJsSiOAD8uNiMFAM8lkTgI",
+                },
+        },
+        {
+            "name": "eval-qwen2.5vl",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--num_processes=1",
+                // "--gpu_ids", "0",
+                "--main_process_port=16849",
+                "-m", "lmms_eval",
+                "--model", "qwen2p5_vl", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                //"--model_args", "pretrained=Qwen/Qwen2.5-VL-7B-Instruct",
+                //"--model_args", "model=Qwen/Qwen2-VL-72B-Instruct,server=hyperbolic,resize=644",
+                "--tasks", "screenspot_rec", // func_pred_rec,screenspot_rec,motif,vwb_eg,vwb_ag,refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "Qwen2.5-VL-2B-Instruct",
                 "--output_path", "./logs/",
                 //"--limit", "0.005"
                 // "--verbosity", "DEBUG"
