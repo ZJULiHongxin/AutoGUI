@@ -17,6 +17,7 @@ AVAILABLE_MODELS = {
     "qwen_vl_chat": "Qwen_VL_Chat",
     "qwen2_vl": "Qwen2_VL",
     "qwen2_vl_cloud": "Qwen2_VL_Cloud",
+    "qwen2p5_vl": "Qwen2p5_VL",
     "fuyu": "Fuyu",
     "gpt4v": "GPT4V",
     "instructblip": "InstructBLIP",

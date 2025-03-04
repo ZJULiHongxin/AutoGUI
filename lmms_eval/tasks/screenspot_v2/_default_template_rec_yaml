@@ -51,6 +51,10 @@ model_specific_prompt_kwargs:
     format: uipro_internvl2
     post_prompt: |
       Where is the <ref>"{goal_info}"</ref> element? (Output the bounding box coordinates of the target)
+  uipro_llavaov:
+    format: uipro_llavaov
+    post_prompt: |
+      Where is the "{goal_info}" element? (Output the center coordinates of the target)
   autogui_llava:
     format: autogui_llava
     post_prompt: |
@@ -121,6 +125,10 @@ model_specific_process_kwargs:
   uipro_qwen2_vl_planning:
     scale: 1000
   uipro_florence2:
+    scale: 1000
+  uipro_llavaov:
+    scale: 1000
+  uipro_internvl2:
     scale: 1000
   qwen_vl_chat:
     scale: 1000
