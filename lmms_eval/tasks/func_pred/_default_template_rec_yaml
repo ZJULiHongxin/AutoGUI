@@ -43,7 +43,7 @@ model_specific_prompt_kwargs:
   uipro_internvl2:
     format: uipro_internvl2
     post_prompt: |
-      Locate the element according to its detailed functionality description. {goal_info} (Output the bounding box coordinates of the target)
+      Locate the element according to its detailed functionality description. <ref>{goal_info}</ref> (Output the bounding box coordinates of the target)
   autogui:
     format: autogui
     post_prompt: |
