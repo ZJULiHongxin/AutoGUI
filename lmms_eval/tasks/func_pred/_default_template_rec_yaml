@@ -1,4 +1,4 @@
-dataset_path: WebAgent/AutoGUI-v1-test
+dataset_path: AutoGUI/AutoGUI-v1-test
 output_type: generate_until
 doc_to_visual: !function utils_rec.func_gnd_doc_to_visual
 doc_to_text: !function utils_rec.func_gnd_doc_to_text
@@ -32,10 +32,18 @@ model_specific_prompt_kwargs:
     format: uipro_florence2
     post_prompt: |
       Locate the element according to its detailed functionality description. {goal_info} (Output the center coordinates of the target)
+  autogui_llava:
+    format: autogui_llava
+    post_prompt: |
+      Locate the element according to its detailed functionality description. {goal_info} (Output the center coordinates of the target)
   uipro_llavaov:
     format: uipro_llavaov
     post_prompt: |
       Where is the "{goal_info}" element?
+  uipro_internvl2:
+    format: uipro_internvl2
+    post_prompt: |
+      Locate the element according to its detailed functionality description. <ref>{goal_info}</ref> (Output the bounding box coordinates of the target)
   autogui:
     format: autogui
     post_prompt: |
@@ -105,8 +113,14 @@ model_specific_process_kwargs:
     scale: 1000
   autogui_qwen2_vl:
     scale: 1000
+  autogui_llava:
+    scale: 1000
   uipro:
     scale: 100
+  uipro_llavaov:
+    scale: 1000
+  uipro_internvl2:
+    scale: 1000
   qwen_vl_chat:
     scale: 1000
   qwen2_vl:

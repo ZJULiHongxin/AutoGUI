@@ -1,4 +1,5 @@
 import os
+import json
 import re
 import sys
 import yaml
@@ -72,6 +73,16 @@ class PathFormatter(logging.Formatter):
 
 SPACING = " " * 47
 
+def is_json(string):
+    try:
+        json.loads(string)
+        return True
+    except json.JSONDecodeError:
+        return False
+
+
+def hash_string(string: str) -> str:
+    return hashlib.sha256(string.encode("utf-8")).hexdigest()
 
 def escaped_split(text, sep_char, maxsplit=-1):
     """Split text into a list on occurrences of the given separation

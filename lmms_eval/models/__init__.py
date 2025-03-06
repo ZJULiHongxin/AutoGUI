@@ -5,8 +5,10 @@ AVAILABLE_MODELS = {
     "uipro_qwen2_vl_planning": "UIPRO_Qwen2_VL_Planning",
     "autogui": "AutoGUI",
     "autogui_qwen2_vl": "Autogui_Qwen2_VL",
+    "autogui_llava": "AutoGUILLaVA",
     'uipro': "UIPro",
     "uipro_llavaov": "UIProLlavaOneVision",
+    "uipro_internvl2": "UIPro_InternVL2",
     "llava_model": "Llava",
     "llava_hf": "LlavaHf",
     "llava_sglang": "LlavaSglang",
@@ -15,6 +17,7 @@ AVAILABLE_MODELS = {
     "qwen_vl_chat": "Qwen_VL_Chat",
     "qwen2_vl": "Qwen2_VL",
     "qwen2_vl_cloud": "Qwen2_VL_Cloud",
+    "qwen2p5_vl": "Qwen2p5_VL",
     "fuyu": "Fuyu",
     "gpt4v": "GPT4V",
     "instructblip": "InstructBLIP",
@@ -42,8 +45,5 @@ for model_name, model_class in AVAILABLE_MODELS.items():
     except ImportError:
         traceback.print_exc()
         print('Invalid VLM model:', model_name, model_class)
-
-
-import hf_transfer
 
 os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"

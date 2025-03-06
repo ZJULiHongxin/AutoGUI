@@ -25,12 +25,24 @@ model_specific_prompt_kwargs:
     format: uipro_florence2
     post_prompt: |
       I want to {goal_info}. Please locate the target element I should interact with. (Output the center coordinates of the target)
+  uipro_llavaov:
+    format: uipro_llavaov
+    post_prompt: |
+      Where is the "{goal_info}" element? (Output the center coordinates of the target)
+  uipro_internvl2:
+    format: uipro_internvl2
+    post_prompt: |
+      Where is the "{goal_info}" element? (Output the bounding box coordinates of the target)
   ferretui:
     format: ferretui
     post_prompt: |
       Provide the bounding boxes of the mentioned objects. {goal_info}
   autogui:
     format: random
+  autogui_llava:
+    format: autogui_llava
+    post_prompt: |
+      Locate the text "{goal_info}" (Output the center coordinates of the target)
   autogui_qwen2_vl:
     format: autogui_qwen2_vl
     ex_post_prompt: |
@@ -101,11 +113,17 @@ model_specific_process_kwargs:
     scale: 1000
   uipro_florence2:
     scale: 1000
+  uipro_llavaov:
+    scale: 1000
+  uipro_internvl2:
+   scale: 1000
   ferretui:
     scale: 1000
   autogui:
     scale: 100
   autogui_qwen2_vl:
+    scale: 1000
+  autogui_llava:
     scale: 1000
   uipro:
     scale: 100
