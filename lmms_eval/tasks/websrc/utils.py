@@ -23,7 +23,7 @@ def construct_prompt(doc):
     return question
 
 
-def websrc_doc_to_text(doc):
+def websrc_doc_to_text(doc, model_name='', model_specific_prompt_kwargs=None):
     question = construct_prompt(doc)
     return question
 
@@ -39,18 +39,24 @@ def websrc_process_results(doc, results):
     pred = results[0]
     parsed_pred = pred
     id = doc["page_id"]
-    websrc_ans = {"id": id, "domain": doc['domain'], "parsed_pred": parsed_pred}
-    if "answer" in doc:
-        websrc_ans["answer"] = doc["answer"]
+    websrc_ans = {
+        "id": id,
+        "domain": doc['domain'],
+        "question": doc['question'],
+        "prompt": pred['prompt'],
+        "parsed_pred": pred['response']
+        }
+    # if "answer" in doc:
+    #     websrc_ans["answer"] = doc["answer"]
 
-    if 'id' in doc:
-        websrc_ans['question_id'] = doc['id']
+    # if 'id' in doc:
+    #     websrc_ans['question_id'] = doc['id']
 
     return {
-        "websrc_squad_f1": websrc_ans,
-        "submission": {
-            websrc_ans['question_id']: pred,
-        },
+        "squad_f1": websrc_ans,
+        # "submission": {
+        #     websrc_ans['question_id']: pred,
+        # },
     }
 
 
@@ -133,7 +139,7 @@ def evaluate_websrc(samples):
     judge_list = []
     for sample in samples:
         gold_i = set(_normalize_str(sample["answer"]))
-        pred_i = set(_normalize_str( sample["parsed_pred"]))
+        pred_i = set(_normalize_str(sample["parsed_pred"]))
         if len(pred_i) == 0:
             judge_list.append(0.0)
             continue

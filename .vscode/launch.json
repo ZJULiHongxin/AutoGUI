@@ -124,6 +124,33 @@
                 },
         },
         {
+            "name": "eval-internvl2",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--num_processes=4",
+                // "--gpu_ids", "0",
+                // "--main_process_port=14343",
+                "-m", "lmms_eval",
+                "--model", "internvl2", // seeclick, qwen_vl_chat deepseek_vl_chat
+                "--model_args", "pretrained=OpenGVLab/InternVL2_5-2B",
+                "--tasks", "func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp", // func_pred_rec, screenspot_rec, motif, refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "InternVL2_5-2B",
+                "--output_path", "./logs/",
+                // "--limit", "0.01"
+                // "--verbosity", "DEBUG"
+                ],
+                "env": {
+                    "CUDA_VISIBLE_DEVICES": "2",
+                },
+        },
+        {
             "name": "eval-autogui",
             "type": "debugpy",
             "request": "launch",
@@ -190,13 +217,13 @@
                 // "--gpu_ids", "0",
                 "--main_process_port=16849",
                 "-m", "lmms_eval",
-                "--model_args", "pretrained=/mnt/nvme1n1p1/hongxin_li/hf_home/hub/models--openbmb--MiniCPM-V-2_6/snapshots/4e4be000cd81feda8b96d14b53f1791b4010b038", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
-                "--tasks", "screenspot_rec", // func_pred_rec,screenspot_rec,motif,vwb,refexp
+                "--model_args", "pretrained=openbmb/MiniCPM-V-2_6", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--tasks", "screenspot_v2_rec", // func_pred_rec,screenspot_rec,motif,vwb,refexp
                 "--batch_size", "1",
                 "--log_samples",
-                "--log_samples_suffix", "test",
+                "--log_samples_suffix", "MiniCPM-V-2_6",
                 "--output_path", "./logs/",
-                "--limit", "0.05"
+                // "--limit", "0.05"
                 // "--verbosity", "DEBUG"
                 ],
                 // "env": {
@@ -249,6 +276,34 @@
                 "--batch_size", "1",
                 "--log_samples",
                 "--log_samples_suffix", "test",
+                "--output_path", "./logs/",
+                //"--limit", "0.05"
+                // "--verbosity", "DEBUG"
+                ],
+                // "env": {
+                //     "CUDA_VISIBLE_DEVICES": "5",
+                // },
+        },
+
+        {
+            "name": "eval-florence2",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--num_processes=1",
+                // "--gpu_ids", "0",
+                "--main_process_port=17849",
+                "-m", "lmms_eval",
+                "--model", "florence2", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--model_args", "pretrained=microsoft/Florence-2-large,device_map=auto",
+                "--tasks", "func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp", // func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "Florence-2-large",
                 "--output_path", "./logs/",
                 //"--limit", "0.05"
                 // "--verbosity", "DEBUG"
@@ -348,17 +403,17 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "--num_processes=1",
+                "--num_processes=4",
                 // "--gpu_ids", "0",
                 "--main_process_port=16849",
                 "-m", "lmms_eval",
                 "--model", "qwen2_vl", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
-                "--model_args", "pretrained=Qwen/Qwen2-VL-7B-Instruct",
+                "--model_args", "pretrained=Qwen/Qwen2-VL-2B-Instruct",
                 //"--model_args", "model=Qwen/Qwen2-VL-72B-Instruct,server=hyperbolic,resize=644",
                 "--tasks", "func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp", // func_pred_rec,screenspot_rec,motif,vwb_eg,vwb_ag,refexp
                 "--batch_size", "1",
                 "--log_samples",
-                "--log_samples_suffix", "Qwen2-VL-7B-Instruct",
+                "--log_samples_suffix", "Qwen2-VL-2B-Instruct",
                 "--output_path", "./logs/",
                 //"--limit", "0.005"
                 // "--verbosity", "DEBUG"

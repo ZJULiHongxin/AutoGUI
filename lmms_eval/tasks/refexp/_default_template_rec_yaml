@@ -83,6 +83,14 @@ model_specific_prompt_kwargs:
     format: osatlas
     post_prompt: |
       In this UI screenshot, what is the position of the element corresponding to the command "{goal_info}" (with bbox)?
+  internvl2:
+    format: internvl2
+    post_prompt: |
+      Please provide the bounding box coordinate of the UI element that fulfills this intent: <ref>{goal_info}</ref>
+  florence2:
+    format: florence2
+    post_prompt: |
+      Locate the phrases in the caption: {goal_info}
 model_specific_process_kwargs:
   uipro_qwen2_vl:
     scale: 1000
@@ -117,4 +125,8 @@ model_specific_process_kwargs:
   uground:
     scale: 1000
   osatlas:
+    scale: 1000
+  internvl2:
+    scale: 1000
+  florence2:
     scale: 1000
