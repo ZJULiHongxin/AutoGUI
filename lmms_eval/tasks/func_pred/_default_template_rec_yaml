@@ -100,6 +100,10 @@ model_specific_prompt_kwargs:
     format: florence2
     post_prompt: |
       Locate the phrases in the caption: {goal_info}
+  uground_llava:
+    format: uground_llava
+    post_prompt: |
+      In the screenshot, where are the pixel coordinates (x, y) of the element corresponding to "{goal_info}"?
 model_specific_process_kwargs:
   uipro_qwen2_vl:
     scale: 1000
@@ -146,4 +150,6 @@ model_specific_process_kwargs:
   internvl2:
     scale: 1000
   florence2:
+    scale: 1000
+  uground_llava:
     scale: 1000

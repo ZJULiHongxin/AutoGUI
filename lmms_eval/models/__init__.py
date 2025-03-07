@@ -36,7 +36,8 @@ AVAILABLE_MODELS = {
     "osatlas": "OSAtlas",
     "llava_ov": "LLaVAOV",
     "internvl2": "InternVL2",
-    "florence2": "Florence2"
+    "florence2": "Florence2",
+    "uground_llava": "UGROUND_LLAVA"
 }
 
 for model_name, model_class in AVAILABLE_MODELS.items():
