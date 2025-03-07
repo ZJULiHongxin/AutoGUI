@@ -140,7 +140,7 @@ class UIPro_InternVL2(lmms):
         super().__init__()
 
         self.path = pretrained
-        self._model = AutoModel.from_pretrained(self.path, torch_dtype=torch.bfloat16, low_cpu_mem_usage=True, trust_remote_code=True).eval().cuda()
+        self._model = AutoModel.from_pretrained(self.path, torch_dtype=torch.bfloat16, low_cpu_mem_usage=True, use_flash_attn=True, trust_remote_code=True).eval().cuda()
         self._tokenizer = AutoTokenizer.from_pretrained(self.path, trust_remote_code=True)
 
         batch_size = int(batch_size)
@@ -266,7 +266,7 @@ class UIPro_InternVL2(lmms):
                 else:
                     pixel_values = None
                     num_patch_list = None
-                response, history = self.model.chat(self.tokenizer, pixel_values, contexts.strip(), gen_kwargs, num_patches_list=num_patches_list, history=None, return_history=True)
+                response, history = self.model.chat(self.tokenizer, pixel_values, contexts.strip(), gen_kwargs, history=None, return_history=True)
             elif self.modality == "video":
                 assert len(visuals) == 1, f"Only one video is supported, but got {len(visuals)} videos."
                 video_path = visuals[0]

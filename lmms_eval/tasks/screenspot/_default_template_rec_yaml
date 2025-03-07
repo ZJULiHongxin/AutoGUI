@@ -59,7 +59,7 @@ model_specific_prompt_kwargs:
   uipro_internvl2:
     format: uipro_internvl2
     post_prompt: |
-      Where is the "{goal_info}" element? (Output the bounding box coordinates of the target)
+      Where is the <ref>"{goal_info}"</ref> element? (Output the bounding box coordinates of the target)
   autogui:
     format: autogui
     post_prompt: |
