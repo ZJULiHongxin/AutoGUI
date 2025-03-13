@@ -114,6 +114,10 @@ model_specific_prompt_kwargs:
     format: llava_ov
     post_prompt: |
       Provide the bounding box coordinate of the region this sentence describe. {goal_info}
+  aguvis:
+    format: aguvis
+    post_prompt: |
+      Click the "{goal_info}" element.
   internvl2:
     format: internvl2
     post_prompt: |
@@ -126,6 +130,11 @@ model_specific_prompt_kwargs:
     format: uground_llava
     post_prompt: |
       In the screenshot, where are the pixel coordinates (x, y) of the element corresponding to "{goal_info}"?
+  osatlas4b:
+    format: osatlas4b
+    post_prompt: |
+      In the screenshot of this web page, please give me the coordinates of the element I want to click on according to my instructions (with point).
+      '{goal_info}' element
 model_specific_process_kwargs:
   uipro_qwen2_vl:
     scale: 1000
@@ -172,4 +181,6 @@ model_specific_process_kwargs:
   florence2:
     scale: 1000
   uground_llava:
+    scale: 1000
+  osatlas4b:
     scale: 1000
