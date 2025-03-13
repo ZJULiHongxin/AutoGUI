@@ -114,6 +114,10 @@ model_specific_prompt_kwargs:
     format: llava_ov
     post_prompt: |
       Provide the bounding box coordinate of the region this sentence describe. {goal_info}
+  aguvis:
+    format: aguvis
+    post_prompt: |
+      Click the "{goal_info}" element.
   internvl2:
     format: internvl2
     post_prompt: |
@@ -182,4 +186,6 @@ model_specific_process_kwargs:
   uground_llava:
     scale: 1000
   uitars:
+    scale: 1000
+  aguvis:
     scale: 1000

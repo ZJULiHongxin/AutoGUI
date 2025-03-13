@@ -35,6 +35,7 @@ AVAILABLE_MODELS = {
     "uground": "UGround",
     "osatlas": "OSAtlas",
     "llava_ov": "LLaVAOV",
+    "aguvis": "AGUVIS",
     "internvl2": "InternVL2",
     "florence2": "Florence2",
     "uground_llava": "UGROUND_LLAVA",

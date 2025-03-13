@@ -103,6 +103,18 @@ model_specific_prompt_kwargs:
     format: florence2
     post_prompt: |
       Locate the phrases in the caption: {goal_info}
+  showui:
+    format: showui
+    post_prompt: |
+      {goal_info}
+  uitars:
+    format: uitars
+    post_prompt: |
+      Output only the coordinate of one point in your response. What element matches the following task: {goal_info}
+  aguvis:
+    format: aguvis
+    post_prompt: |
+      {goal_info}
 model_specific_process_kwargs:
   uipro_qwen2_vl:
     scale: 1000
@@ -147,4 +159,8 @@ model_specific_process_kwargs:
   internvl2:
     scale: 1000
   florence2:
+    scale: 1000
+  uitars:
+    scale: 1000
+  aguvis:
     scale: 1000
