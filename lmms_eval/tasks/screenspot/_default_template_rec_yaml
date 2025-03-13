@@ -130,7 +130,6 @@ model_specific_prompt_kwargs:
     format: uground_llava
     post_prompt: |
       In the screenshot, where are the pixel coordinates (x, y) of the element corresponding to "{goal_info}"?
-<<<<<<< HEAD
   showui:
     format: showui
     post_prompt: |
@@ -139,13 +138,11 @@ model_specific_prompt_kwargs:
     format: uitars
     post_prompt: |
       Output only the coordinate of one point in your response. What element matches the following task: {goal_info}
-=======
   osatlas4b:
     format: osatlas4b
     post_prompt: |
       In the screenshot of this web page, please give me the coordinates of the element I want to click on according to my instructions (with point).
       '{goal_info}' element
->>>>>>> 77ca9e56a6168ae00f00be60e7b83b676de35e2e
 model_specific_process_kwargs:
   uipro_qwen2_vl:
     scale: 1000
@@ -193,11 +190,8 @@ model_specific_process_kwargs:
     scale: 1000
   uground_llava:
     scale: 1000
-<<<<<<< HEAD
   uitars:
     scale: 1000
   aguvis:
-=======
   osatlas4b:
->>>>>>> 77ca9e56a6168ae00f00be60e7b83b676de35e2e
     scale: 1000
