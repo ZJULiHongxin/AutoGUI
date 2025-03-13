@@ -47,14 +47,14 @@ model_specific_prompt_kwargs:
     format: uipro_florence2
     post_prompt: |
       I want to {goal_info}. Please locate the target element I should interact with. (Output the center coordinates of the target)
+  uipro_internvl2:
+    format: uipro_internvl2
+    post_prompt: |
+      Where is the <ref>"{goal_info}"</ref> element? (Output the bounding box coordinates of the target)
   uipro_llavaov:
     format: uipro_llavaov
     post_prompt: |
       Where is the "{goal_info}" element? (Output the center coordinates of the target)
-  uipro_internvl2:
-    format: uipro_internvl2
-    post_prompt: |
-      Where is the "{goal_info}" element? (Output the bounding box coordinates of the target)
   autogui_llava:
     format: autogui_llava
     post_prompt: |
@@ -109,6 +109,14 @@ model_specific_prompt_kwargs:
     format: osatlas
     post_prompt: |
       In this UI screenshot, what is the position of the element corresponding to the command "{goal_info}" (with bbox)?
+  internvl2:
+    format: internvl2
+    post_prompt: |
+      Please provide the bounding box coordinate of the UI element this sentence describes: <ref>{goal_info}</ref>
+  florence2:
+    format: florence2
+    post_prompt: |
+      Locate the phrases in the caption: {goal_info}
 model_specific_process_kwargs:
   ferretui:
     scale: 1000
@@ -149,4 +157,8 @@ model_specific_process_kwargs:
   osatlas:
     scale: 1000
   cogagent_chat_hf:
+    scale: 1000
+  internvl2:
+    scale: 1000
+  florence2:
     scale: 1000
