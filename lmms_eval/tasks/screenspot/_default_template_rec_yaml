@@ -117,7 +117,7 @@ model_specific_prompt_kwargs:
   internvl2:
     format: internvl2
     post_prompt: |
-      Please provide the bounding box coordinate of the UI element this sentence describes: <ref>{goal_info}</ref>
+      Please provide the bounding box coordinate of the region this sentence describes: <ref>The "{goal_info}" element</ref>
   florence2:
     format: florence2
     post_prompt: |
@@ -126,6 +126,14 @@ model_specific_prompt_kwargs:
     format: uground_llava
     post_prompt: |
       In the screenshot, where are the pixel coordinates (x, y) of the element corresponding to "{goal_info}"?
+  showui:
+    format: showui
+    post_prompt: |
+      {goal_info}
+  uitars:
+    format: uitars
+    post_prompt: |
+      Output only the coordinate of one point in your response. What element matches the following task: {goal_info}
 model_specific_process_kwargs:
   uipro_qwen2_vl:
     scale: 1000
@@ -172,4 +180,6 @@ model_specific_process_kwargs:
   florence2:
     scale: 1000
   uground_llava:
+    scale: 1000
+  uitars:
     scale: 1000

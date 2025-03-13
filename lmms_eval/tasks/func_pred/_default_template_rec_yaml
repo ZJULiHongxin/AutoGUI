@@ -95,7 +95,7 @@ model_specific_prompt_kwargs:
   internvl2:
     format: internvl2
     post_prompt: |
-      Please provide the bounding box coordinate of the UI element this sentence describes: <ref>{goal_info}</ref>. Answer in [x1, y1, x2, y2] format.
+      Please provide the bounding box coordinate of the region this sentence describes: <ref>{goal_info}</ref>
   florence2:
     format: florence2
     post_prompt: |

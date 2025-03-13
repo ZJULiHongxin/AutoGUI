@@ -37,7 +37,9 @@ AVAILABLE_MODELS = {
     "llava_ov": "LLaVAOV",
     "internvl2": "InternVL2",
     "florence2": "Florence2",
-    "uground_llava": "UGROUND_LLAVA"
+    "uground_llava": "UGROUND_LLAVA",
+    "showui": "ShowUI",
+    "uitars": "UITARS"
 }
 
 for model_name, model_class in AVAILABLE_MODELS.items():
