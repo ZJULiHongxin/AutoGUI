@@ -18,16 +18,9 @@ warnings.simplefilter("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore")
 
 eval_logger = logging.getLogger("lmms-eval")
-from transformers import AutoModelForCausalLM, AutoTokenizer, AutoProcessor
-from peft import AutoPeftModelForCausalLM
-
-from transformers import Qwen2VLForConditionalGeneration, AutoTokenizer, AutoProcessor
-from qwen_vl_utils import process_vision_info
-
-import numpy as np
+from transformers import AutoTokenizer
 import torch
 import torchvision.transforms as T
-from PIL import Image
 from torchvision.transforms.functional import InterpolationMode
 from transformers import AutoModel, AutoTokenizer
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
@@ -132,10 +125,10 @@ class OSATLAS4B(lmms):
 
         print(Fore.YELLOW + f"Loading a full model from {pretrained}" + Style.RESET_ALL)
         self._model = AutoModel.from_pretrained(
-            pretrained, device_map=self._device,
+            pretrained, device_map=self._device, torch_dtype=torch.bfloat16,
             low_cpu_mem_usage=True,
-            trust_remote_code=True
-                )
+            trust_remote_code=True,
+                ).eval().cuda()
 
         self._tokenizer = AutoTokenizer.from_pretrained(pretrained, trust_remote_code=trust_remote_code)
 
@@ -327,8 +320,11 @@ class OSATLAS4B(lmms):
                 gen_kwargs["top_p"] = None
             if "num_beams" not in gen_kwargs:
                 gen_kwargs["num_beams"] = 1
+            if "until" in gen_kwargs:
+                gen_kwargs.pop("until")
 
-            output_text, history = self.model.chat(self.tokenizer, pixel_values, contexts[0], gen_kwargs, history=None, return_history=True)
+            with torch.inference_mode():
+                output_text, history = self.model.chat(self.tokenizer, pixel_values, contexts[0].strip(), gen_kwargs, history=None, return_history=True)
 
             if (hasattr(self, "accelerator") and self.accelerator.is_main_process or not hasattr(self, "accelerator") is None) and doc_id[0] % 5 == 0:
                 print(f"Generated text for doc ID {doc_id[0]}:")

@@ -606,12 +606,12 @@
                 "--model", "osatlas4b", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
 
                 //"--model_args", "model=Qwen/Qwen2-VL-72B-Instruct,server=hyperbolic,resize=644",
-                "--tasks", "screenspot_rec", // func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp
+                "--tasks", "func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp", // func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp
                 "--batch_size", "1",
                 "--log_samples",
                 "--log_samples_suffix", "OS-Atlas-Base-4B",
                 "--output_path", "./logs/",
-                "--limit", "0.005"
+                //"--limit", "0.01"
                 // "--verbosity", "DEBUG"
                 ],
                 "env": {
