@@ -39,6 +39,8 @@ AVAILABLE_MODELS = {
     "internvl2": "InternVL2",
     "florence2": "Florence2",
     "uground_llava": "UGROUND_LLAVA",
+    "showui": "ShowUI",
+    "uitars": "UITARS",
     "osatlas4b": "OSATLAS4B"
 }
 
