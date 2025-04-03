@@ -6,8 +6,11 @@
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/Naereen/StrapDown.js/graphs/commit-activity) 
 [![Awesome](https://awesome.re/badge.svg)]()
 
-This repo opensource the training and evaluation code for AutoGUI, an automatic and scalable GUI annotation pipeline
+This repo opensources the training and evaluation code for AutoGUI, an automatic and scalable GUI annotation pipeline
 
+TODO: 
+1. AutoGUI-v2 data collected on thousands of mobile apps is coming soon.
+2. Functionality-grounding-assisted GUI agents are coming soon.
 
 ***
 
