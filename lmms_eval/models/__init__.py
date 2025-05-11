@@ -9,7 +9,7 @@ AVAILABLE_MODELS = {
     'uipro': "UIPro",
     "uipro_llavaov": "UIProLlavaOneVision",
     "uipro_internvl2": "UIPro_InternVL2",
-    "uipro_showui": "UIProShowUI",
+    "qwen2vl_showui": "Qwen2VLShowUI",
     "llava_model": "Llava",
     "llava_hf": "LlavaHf",
     "llava_sglang": "LlavaSglang",

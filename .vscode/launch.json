@@ -608,7 +608,7 @@
                 },
         },
         {
-            "name": "eval-uiproshowui",
+            "name": "eval-Qwen2VLShowUI",
             "type": "debugpy",
             "request": "launch",
             "module": "accelerate.commands.launch",
@@ -616,18 +616,18 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "--num_processes=1",
+                "--num_processes=8",
                 // "--gpu_ids", "0",
                 "--main_process_port=16849",
                 "-m", "lmms_eval",
-                "--model", "uipro_showui", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
-                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0511_Qwen2VL-2B_ShowUI-Gnd1489k/lora/mnt/vdb1/juzheng/data/ShowUI",
-                "--tasks", "screenspot_rec", // func_pred_rec,screenspot_rec,motif,vwb_eg,vwb_ag,refexp
+                "--model", "qwen2vl_showui", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--model_args", "pretrained=/mnt/vdb1/hongxin_li/uipro_ckpt/0511_Qwen2VL-2B_ShowUI-Gnd1489k/lora",
+                "--tasks", "func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp", // func_pred_rec,screenspot_rec,motif,vwb_eg,vwb_ag,refexp
                 "--batch_size", "1",
                 "--log_samples",
-                "--log_samples_suffix", "UIPro-ShowUI_Gnd1489k_test",
+                "--log_samples_suffix", "Qwen2VL-2B_ShowUIGnd1489k",
                 "--output_path", "./logs/",
-                "--limit", "0.005"
+                //"--limit", "0.005"
                 // "--verbosity", "DEBUG"
                 ],
                 "env": {

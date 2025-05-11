@@ -24,8 +24,8 @@ from qwen_vl_utils import process_vision_info
 
 _SYSTEM = "Based on the screenshot of the page, I give a text description and you give its corresponding location. The coordinate represents a clickable location [x, y] for an element, which is a relative coordinate on the screenshot, scaled from 0 to 1."
 
-@register_model("uipro_showui")
-class UIProShowUI(lmms):
+@register_model("qwen2vl_showui")
+class Qwen2VLShowUI(lmms):
     """
     ShowUI Model
     https://huggingface.co/showlab/ShowUI-2B
