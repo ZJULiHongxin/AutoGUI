@@ -60,6 +60,10 @@ model_specific_prompt_kwargs:
     format: uipro_internvl2
     post_prompt: |
       Where is the <ref>"{goal_info}"</ref> element? (Output the bounding box coordinates of the target)
+  uipro_showui:
+    format: uipro_showui
+    post_prompt: |
+      Based on the screenshot of the page, I give a text description and you give its corresponding location. The coordinate represents a clickable location [x, y] for an element, which is a relative coordinate on the screenshot, scaled from 0 to 1000. {goal_info}
   autogui:
     format: autogui
     post_prompt: |
@@ -135,6 +139,15 @@ model_specific_prompt_kwargs:
     post_prompt: |
       In the screenshot of this web page, please give me the coordinates of the element I want to click on according to my instructions (with point).
       '{goal_info}' element
+  qwen2p5_vl:
+    format: qwen2p5_vl
+    post_prompt: |
+      In the screenshot of this web page, please give me the coordinates of the element I want to click on according to my instructions (with point).
+      '{goal_info}' element
+  showui:
+    format: showui
+    post_prompt: |
+      {goal_info}
 model_specific_process_kwargs:
   uipro_qwen2_vl:
     scale: 1000
@@ -145,6 +158,8 @@ model_specific_process_kwargs:
   uipro_llavaov:
     scale: 1000
   uipro_internvl2:
+    scale: 1000
+  uipro_showui:
     scale: 1000
   ferretui:
     scale: 1000

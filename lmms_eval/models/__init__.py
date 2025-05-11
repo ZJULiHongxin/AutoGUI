@@ -9,6 +9,7 @@ AVAILABLE_MODELS = {
     'uipro': "UIPro",
     "uipro_llavaov": "UIProLlavaOneVision",
     "uipro_internvl2": "UIPro_InternVL2",
+    "uipro_showui": "UIProShowUI",
     "llava_model": "Llava",
     "llava_hf": "LlavaHf",
     "llava_sglang": "LlavaSglang",
@@ -39,7 +40,8 @@ AVAILABLE_MODELS = {
     "internvl2": "InternVL2",
     "florence2": "Florence2",
     "uground_llava": "UGROUND_LLAVA",
-    "osatlas4b": "OSATLAS4B"
+    "osatlas4b": "OSATLAS4B",
+    "showui": "ShowUI"
 }
 
 for model_name, model_class in AVAILABLE_MODELS.items():
