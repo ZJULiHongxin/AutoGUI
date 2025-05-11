@@ -148,6 +148,15 @@ model_specific_prompt_kwargs:
     post_prompt: |
       In the screenshot of this web page, please give me the coordinates of the element I want to click on according to my instructions (with point).
       '{goal_info}' element
+  ui_r1:
+    format: ui_r1
+    post_prompt: |
+      In this UI screenshot, I want to perform the command '{goal_info}'.
+      Please provide the action to perform (enumerate in ['click', 'scroll']) and the coordinate where the cursor is moved to(integer) if click is performed.
+      Output the thinking process in <think> </think> and final answer in <answer> </answer> tags.
+      The output answer format should be as follows:
+      "<think> ... </think> <answer>[{'action': enum['click', 'scroll'], 'coordinate': [x, y]}]</answer>\n"
+      Please strictly follow the format.
 model_specific_process_kwargs:
   uipro_qwen2_vl:
     scale: 1000
