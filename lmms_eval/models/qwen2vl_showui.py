@@ -5,7 +5,6 @@ from lmms_eval import utils
 from lmms_eval.api.instance import Instance
 from lmms_eval.api.model import lmms
 from lmms_eval.api.registry import register_model
-from lmms_eval.models.model_utils.qwen.qwen_generate_utils import make_context
 from accelerate import Accelerator, DistributedType
 from typing import List, Optional, Union, Tuple
 import uuid
@@ -25,8 +24,8 @@ from qwen_vl_utils import process_vision_info
 
 _SYSTEM = "Based on the screenshot of the page, I give a text description and you give its corresponding location. The coordinate represents a clickable location [x, y] for an element, which is a relative coordinate on the screenshot, scaled from 0 to 1."
 
-@register_model("showui")
-class ShowUI(lmms):
+@register_model("qwen2vl_showui")
+class Qwen2VLShowUI(lmms):
     """
     ShowUI Model
     https://huggingface.co/showlab/ShowUI-2B
@@ -59,9 +58,9 @@ class ShowUI(lmms):
         try:
             self._tokenizer = AutoTokenizer.from_pretrained(pretrained, trust_remote_code=trust_remote_code)
         except:
-            self._tokenizer = AutoTokenizer.from_pretrained('Qwen/Qwen2-VL-2B-Instruct', trust_remote_code=trust_remote_code)
+            self._tokenizer = AutoTokenizer.from_pretrained('Qwen/Qwen2-VL-7B-Instruct', trust_remote_code=trust_remote_code)
 
-        self.processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-2B-Instruct", min_pixels=256*28*28, max_pixels=1344*28*28)
+        self.processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-7B-Instruct", min_pixels=256*28*28, max_pixels=1344*28*28)
 
         self._config = self._model.config
         # self.model.tie_weights()

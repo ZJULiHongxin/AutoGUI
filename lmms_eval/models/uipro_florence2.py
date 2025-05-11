@@ -42,7 +42,7 @@ class UIPro_Florence2(lmms):
     def __init__(
         self,
         pretrained: str = "Samsung/TinyClick",
-        device: Optional[str] = "cuda",
+        device: Optional[str] = "cuda:0",
         batch_size: Optional[Union[int, str]] = 1,
         trust_remote_code: Optional[bool] = True,
         use_cache=True,

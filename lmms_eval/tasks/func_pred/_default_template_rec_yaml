@@ -44,6 +44,10 @@ model_specific_prompt_kwargs:
     format: uipro_internvl2
     post_prompt: |
       Locate the element according to its detailed functionality description. <ref>{goal_info}</ref> (Output the bounding box coordinates of the target)
+  qwen2vl_showui:
+    format: qwen2vl_showui
+    post_prompt: |
+      Based on the screenshot of the page, I give a text description and you give its corresponding location. The coordinate represents a clickable location [x, y] for an element, which is a relative coordinate on the screenshot, scaled from 0 to 1000. {goal_info}
   autogui:
     format: autogui
     post_prompt: |
@@ -136,6 +140,8 @@ model_specific_process_kwargs:
   uipro_llavaov:
     scale: 1000
   uipro_internvl2:
+    scale: 1000
+  qwen2vl_showui:
     scale: 1000
   qwen_vl_chat:
     scale: 1000
