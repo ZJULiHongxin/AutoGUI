@@ -40,8 +40,9 @@ AVAILABLE_MODELS = {
     "internvl2": "InternVL2",
     "florence2": "Florence2",
     "uground_llava": "UGROUND_LLAVA",
-    "osatlas4b": "OSATLAS4B",
-    "showui": "ShowUI"
+    "showui": "ShowUI",
+    "uitars": "UITARS",
+    "osatlas4b": "OSATLAS4B"
 }
 
 for model_name, model_class in AVAILABLE_MODELS.items():

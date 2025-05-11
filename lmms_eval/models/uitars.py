@@ -23,18 +23,16 @@ from transformers import AutoTokenizer, AutoProcessor
 from transformers import Qwen2VLForConditionalGeneration, AutoTokenizer, AutoProcessor
 from qwen_vl_utils import process_vision_info
 
-_SYSTEM = "Based on the screenshot of the page, I give a text description and you give its corresponding location. The coordinate represents a clickable location [x, y] for an element, which is a relative coordinate on the screenshot, scaled from 0 to 1."
-
-@register_model("showui")
-class ShowUI(lmms):
+@register_model("uitars")
+class UITARS(lmms):
     """
-    ShowUI Model
-    https://huggingface.co/showlab/ShowUI-2B
+    UI-TARS Model
+    https://huggingface.co/bytedance-research/UI-TARS-7B-SFT
     """
 
     def __init__(
         self,
-        pretrained: str = "showlab/ShowUI-2B",
+        pretrained: str = "bytedance-research/UI-TARS-7B-SFT",
         device: Optional[str] = "cuda",
         batch_size: Optional[Union[int, str]] = 1,
         trust_remote_code: Optional[bool] = True,
@@ -59,9 +57,9 @@ class ShowUI(lmms):
         try:
             self._tokenizer = AutoTokenizer.from_pretrained(pretrained, trust_remote_code=trust_remote_code)
         except:
-            self._tokenizer = AutoTokenizer.from_pretrained('Qwen/Qwen2-VL-2B-Instruct', trust_remote_code=trust_remote_code)
+            self._tokenizer = AutoTokenizer.from_pretrained('Qwen/Qwen2-VL-7B-Instruct', trust_remote_code=trust_remote_code)
 
-        self.processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-2B-Instruct", min_pixels=256*28*28, max_pixels=1344*28*28)
+        self.processor = AutoProcessor.from_pretrained(pretrained, min_pixels=256*28*28, max_pixels=1344*28*28)
 
         self._config = self._model.config
         # self.model.tie_weights()
@@ -134,7 +132,58 @@ class ShowUI(lmms):
         return self._world_size
 
     def loglikelihood(self, requests: List[Instance]) -> List[Tuple[float, bool]]:
-        pass
+        res = []
+        pbar = tqdm(total=len(requests), disable=(self.rank != 0), desc="Model Responding")
+
+        for contexts, doc_to_target, doc_to_visual, doc_id, task, split in [reg.args for reg in requests]:
+            # encode, pad, and truncate contexts for this batch
+            if type(doc_to_target) == str:
+                continuation = doc_to_target
+            else:
+                continuation = doc_to_target(self.task_dict[task][split][doc_id])
+            visuals = [doc_to_visual(self.task_dict[task][split][doc_id])]
+            visuals = self.flatten(visuals)
+            query = []
+            visual_paths = []
+            for visual in visuals:
+                name = uuid.uuid4().hex.upper()[0:6]
+                visual.save(f"/tmp/{name}.png")
+                visual_paths.append(f"/tmp/{name}.png")
+                query.append({"image": f"/tmp/{name}.png"})
+
+            # Make a copy for query to save context (text that needs to be masked)
+            context_query = [_ for _ in query]
+            context_query.append({"text": contexts})
+            query.append({"text": contexts + continuation})
+
+            context_query = self.tokenizer.from_list_format(context_query)
+            query = self.tokenizer.from_list_format(query)
+
+            raw_contxt_text, context_tokens = make_context(
+                self.tokenizer, context_query, history=None, system="You are a helpful assistant", max_window_size=self.model.generation_config.max_window_size, chat_format=self.model.generation_config.chat_format
+            )
+            context_tokens = torch.tensor([context_tokens])
+
+            raw_continuation_text, continuation_tokens = make_context(
+                self.tokenizer, query, history=None, system="You are a helpful assistant", max_window_size=self.model.generation_config.max_window_size, chat_format=self.model.generation_config.chat_format
+            )
+            continuation_tokens = torch.tensor([continuation_tokens]).to(self.model.device)
+            attn_mask = torch.ones_like(continuation_tokens).to(self.model.device)
+            labels = continuation_tokens.clone().to(self.model.device)
+            labels[:, : context_tokens.shape[1]] = -100
+            with torch.inference_mode():
+                outputs = self.model(input_ids=continuation_tokens, labels=labels, attention_mask=attn_mask)
+            loss = outputs.loss
+            logits = outputs["logits"]
+            greedy_tokens = logits.argmax(dim=-1)
+            cont_toks = continuation_tokens[:, context_tokens.shape[1] :]
+            greedy_tokens = greedy_tokens[:, context_tokens.shape[1] : continuation_tokens.shape[1]]  # [1, seq]
+            max_equal = (greedy_tokens == cont_toks).all()
+            res.append((float(loss.item()), bool(max_equal)))
+            pbar.update(1)
+
+        pbar.close()
+        return res
 
     def flatten(self, input):
         new_list = []
@@ -180,6 +229,17 @@ class ShowUI(lmms):
             # this is safe to assume because the `grouper` object ensures it.
             gen_kwargs = all_gen_kwargs[0]
 
+            # Set default values for until and max_new_tokens
+            # until = [self.tokenizer.decode(self.eot_token_id)]
+
+            # # Update values from gen_kwargs if present
+            # if "until" in gen_kwargs:
+            #     until = gen_kwargs.pop("until")
+            #     if isinstance(until, str):
+            #         until = [until]
+            #     elif not isinstance(until, list):
+            #         raise ValueError(f"Expected `gen_kwargs['until']` to be of type Union[str,list] but got {type(until)}")
+
             if isinstance(contexts, tuple):
                 contexts = list(contexts)
 
@@ -188,9 +248,8 @@ class ShowUI(lmms):
                     contexts[i] = contexts[i].replace("<image>", "")
 
             content = [
-                {"type": "text", "text": _SYSTEM}
+                {"type": "text", "text": "Based on the screenshot of the page, I give a text description and you give its corresponding location. The coordinate represents a clickable location [x, y] for an element, which is a relative coordinate on the screenshot, scaled from 0 to 1."}
             ]
-
             for visual_path, context in zip(visual_paths, contexts):
                 content.append({"type": "image", "image": visual_path, "min_pixels": 256*28*28, "max_pixels": 1344*28*28})
                 content.append({"type": "text", "text": context})

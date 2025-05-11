@@ -96,13 +96,21 @@ model_specific_prompt_kwargs:
   internvl2:
     format: internvl2
     post_prompt: |
-      Please provide the bounding box coordinate of the UI element that fulfills this intent: <ref>{goal_info}</ref>'
+      Please provide the bounding box coordinate of the region this sentence describes: <ref>The element used to {goal_info}</ref>
   florence2:
     format: florence2
     post_prompt: |
       Locate the phrases in the caption: {goal_info}
   showui:
     format: showui
+    post_prompt: |
+      {goal_info}
+  uitars:
+    format: uitars
+    post_prompt: |
+      Output only the coordinate of one point in your response. What element matches the following task: {goal_info}
+  aguvis:
+    format: aguvis
     post_prompt: |
       {goal_info}
 process_results: !function utils_point.motif_point_process_results
@@ -155,6 +163,10 @@ model_specific_process_kwargs:
   internvl2:
     scale: 1000
   florence2:
+    scale: 1000
+  uitars:
+    scale: 1000
+  aguvis:
     scale: 1000
 metric_list: # extract the value according to the metric: "key". Thus, the process_results should output the {key1: , key2: ...}
   - metric: motif_gnd_result

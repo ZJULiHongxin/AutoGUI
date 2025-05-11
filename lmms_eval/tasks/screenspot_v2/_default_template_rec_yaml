@@ -116,7 +116,7 @@ model_specific_prompt_kwargs:
   internvl2:
     format: internvl2
     post_prompt: |
-      Please provide the bounding box coordinate of the UI element this sentence describes: <ref>{goal_info}</ref>
+      Please provide the bounding box coordinate of the region this sentence describes: <ref>The "{goal_info}" element</ref>
   florence2:
     format: florence2
     post_prompt: |
@@ -125,6 +125,14 @@ model_specific_prompt_kwargs:
     format: showui
     post_prompt: |
       {goal_info}
+  uitars:
+    format: uitars
+    post_prompt: |
+      Output only the coordinate of one point in your response. What element matches the following task: {goal_info}
+  aguvis:
+    format: aguvis
+    post_prompt: |
+      Click the "{goal_info}" element.
 model_specific_process_kwargs:
   ferretui:
     scale: 1000
@@ -171,4 +179,8 @@ model_specific_process_kwargs:
   internvl2:
     scale: 1000
   florence2:
+    scale: 1000
+  uitars:
+    scale: 1000
+  aguvis:
     scale: 1000
