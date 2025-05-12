@@ -591,7 +591,7 @@
                 },
         },
         {
-            "name": "eval-osatlas4b",
+            "name": "eval-osatlas4b", // need transformers==4.41.2
             "type": "debugpy",
             "request": "launch",
             "module": "accelerate.commands.launch",
@@ -599,7 +599,7 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "--num_processes=1",
+                "--num_processes=8",
                 // "--gpu_ids", "0",
                 "--main_process_port=16849",
                 "-m", "lmms_eval",
@@ -611,7 +611,7 @@
                 "--log_samples",
                 "--log_samples_suffix", "OS-Atlas-Base-4B",
                 "--output_path", "./logs/",
-                //"--limit", "0.01"
+                // "--limit", "0.005"
                 // "--verbosity", "DEBUG"
                 ],
                 "env": {

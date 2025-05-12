@@ -117,6 +117,15 @@ model_specific_prompt_kwargs:
     format: florence2
     post_prompt: |
       Locate the phrases in the caption: {goal_info}
+  uground_llava:
+    format: uground_llava
+    post_prompt: |
+      In the screenshot, where are the pixel coordinates (x, y) of the element corresponding to "{goal_info}"?
+  osatlas4b:
+    format: osatlas4b
+    post_prompt: |
+      In the screenshot of this web page, please give me the coordinates of the element I want to click on according to my instructions (with point).
+      '{goal_info}' element
 model_specific_process_kwargs:
   ferretui:
     scale: 1000
@@ -161,4 +170,6 @@ model_specific_process_kwargs:
   internvl2:
     scale: 1000
   florence2:
+    scale: 1000
+  osatlas4b:
     scale: 1000
