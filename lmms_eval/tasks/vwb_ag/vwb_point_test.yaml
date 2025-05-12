@@ -33,6 +33,10 @@ model_specific_prompt_kwargs:
     format: uipro_internvl2
     post_prompt: |
       I want to <ref>{goal_info}</ref>. Please locate the target element I should interact with. (Output the bounding box coordinates of the target)
+  qwen2vl_showui:
+    format: qwen2vl_showui
+    post_prompt: |
+      Based on the screenshot of the page, I give a text description and you give its corresponding location. The coordinate represents a clickable location [x, y] for an element, which is a relative coordinate on the screenshot, scaled from 0 to 1000. {goal_info}
   autogui_llava:
     format: autogui_llava
     post_prompt: |
@@ -106,7 +110,7 @@ model_specific_prompt_kwargs:
   internvl2:
     format: internvl2
     post_prompt: |
-      Please provide the bounding box coordinate of the UI element targeted by this action: <ref>{goal_info}</ref>
+      Please provide the bounding box coordinate of the region this sentence describes: <ref>The element used to {goal_info}</ref>
   florence2:
     format: florence2
     post_prompt: |
@@ -119,6 +123,17 @@ model_specific_prompt_kwargs:
     format: osatlas4b
     post_prompt: |
       In the screenshot of this web page, please give me the coordinates of the element I want to click on according to my instructions (with point).
+  showui:
+    format: showui
+    post_prompt: |
+      {goal_info}
+  uitars:
+    format: uitars
+    post_prompt: |
+      Output only the coordinate of one point in your response. What element matches the following task: {goal_info}
+  aguvis:
+    format: aguvis
+    post_prompt: |
       {goal_info}
 process_results: !function utils_point.vwb_point_process_results
 model_specific_process_kwargs:
@@ -131,6 +146,8 @@ model_specific_process_kwargs:
   uipro_llavaov:
     scale: 1000
   uipro_internvl2:
+    scale: 1000
+  qwen2vl_showui:
     scale: 1000
   ferretui:
     scale: 1000
@@ -169,6 +186,9 @@ model_specific_process_kwargs:
   uground_llava:
     scale: 1000
   osatlas4b:
+  uitars:
+    scale: 1000
+  aguvis:
     scale: 1000
 metric_list: # extract the value according to the metric: "key". Thus, the process_results should output the {key1: , key2: ...}
   - metric: vwb_action-gnd_result

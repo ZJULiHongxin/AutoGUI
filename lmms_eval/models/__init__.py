@@ -9,6 +9,7 @@ AVAILABLE_MODELS = {
     'uipro': "UIPro",
     "uipro_llavaov": "UIProLlavaOneVision",
     "uipro_internvl2": "UIPro_InternVL2",
+    "qwen2vl_showui": "Qwen2VLShowUI",
     "llava_model": "Llava",
     "llava_hf": "LlavaHf",
     "llava_sglang": "LlavaSglang",
@@ -39,6 +40,8 @@ AVAILABLE_MODELS = {
     "internvl2": "InternVL2",
     "florence2": "Florence2",
     "uground_llava": "UGROUND_LLAVA",
+    "showui": "ShowUI",
+    "uitars": "UITARS",
     "osatlas4b": "OSATLAS4B"
 }
 
