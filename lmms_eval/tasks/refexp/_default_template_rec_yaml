@@ -107,6 +107,10 @@ model_specific_prompt_kwargs:
     format: florence2
     post_prompt: |
       Locate the phrases in the caption: {goal_info}
+  osatlas4b:
+    format: osatlas4b
+    post_prompt: |
+      In the screenshot of this web page, please give me the coordinates of the element I want to click on according to my instructions (with point).
   showui:
     format: showui
     post_prompt: |
@@ -170,6 +174,7 @@ model_specific_process_kwargs:
     scale: 1000
   florence2:
     scale: 1000
+  osatlas4b:
   uitars:
     scale: 1000
   aguvis:
