@@ -41,6 +41,7 @@ AVAILABLE_MODELS = {
     "florence2": "Florence2",
     "uground_llava": "UGROUND_LLAVA",
     "showui": "ShowUI",
+    "showui_autogui": "ShowUI_AutoGUI",
     "uitars": "UITARS",
     "osatlas4b": "OSATLAS4B"
 }

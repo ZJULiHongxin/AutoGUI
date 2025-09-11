@@ -1,6 +1,7 @@
 import re , random
 import logging
 from datasets import Dataset
+from lmms_eval.utils import IMAGE_SIZE_TAG
 from pretrain.prompt_lib import web_loca_all_point_prompt, apply_vlm_template
 from pretrain.process_utils import pred_2_point
 
@@ -54,6 +55,13 @@ def screenspot_rec_process_result(doc, result, model_specific_process_kwargs=Non
     pred = result[0]['response'] if len(result) > 0 else ""
 
     scale = model_specific_process_kwargs.get("scale", 1) if model_specific_process_kwargs is not None else 1
+
+    # If scale is -1, the output coordinates are not normalized
+    if scale == -1:
+        w, h = result[0][IMAGE_SIZE_TAG][0]
+        scale = 1
+    else:
+        w, h = None, None
 
     try:
         pred = pred_2_point(pred, keep_box=False, scale=scale)

@@ -369,6 +369,34 @@
         },
 
         {
+            "name": "eval-uipro",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--num_processes=1",
+                // "--gpu_ids", "0",
+                "--main_process_port=17849",
+                "-m", "lmms_eval",
+                "--model", "uipro_qwen2_vl", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--model_args", "pretrained=/mnt/jfs/copilot/lhx/LLaMAFactory_ckpts/0510_UIPro-Qwen2VL-2B_GoClickCoreSet-v2-1489k/lora/checkpoint-2250/,device_map=auto",
+                "--tasks", "func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp", // func_pred_rec,screenspot_rec,motif,vwb,refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "0510_UIPro-Qwen2VL-2B_GoClickCoreSet-v2-1489k_1E",
+                "--output_path", "./logs/",
+                //"--limit", "0.005"
+                // "--verbosity", "DEBUG"
+                ],
+                // "env": {
+                //     "CUDA_VISIBLE_DEVICES": "5",
+                // },
+        },
+
+        {
             "name": "eval-uipro_internvl2",
             "type": "debugpy",
             "request": "launch",
@@ -518,6 +546,32 @@
                 "--batch_size", "1",
                 "--log_samples",
                 "--log_samples_suffix", "ShowUI-2B_test",
+                "--output_path", "./logs/",
+                //"--limit", "0.005"
+                // "--verbosity", "DEBUG"
+                ],
+
+        },
+        {
+            "name": "eval-showui_autoguidata",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            // "program": "",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--num_processes=4",
+                // "--gpu_ids", "0",
+                "--main_process_port=16849",
+                "-m", "lmms_eval",
+                "--model", "showui_autogui", // seeclick, qwen_vl_chat deepseek_vl_chat, llava_hf
+                "--model_args", "pretrained=/mnt/shared-storage/groups/stepone_mm/lhx/ShowUI_ckpt/0512_ShowUI-Qwen2VL-2B_UIPro4336k_ShowUICfg/2025-05-12_09-50-16/epoch_15/merged_model",
+                //"--model_args", "model=Qwen/Qwen2-VL-72B-Instruct,server=hyperbolic,resize=644",
+                "--tasks", "func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp", // func_pred_rec,screenspot_rec,screenspot_v2_rec,motif,vwb_eg,vwb_ag,refexp
+                "--batch_size", "1",
+                "--log_samples",
+                "--log_samples_suffix", "0512_ShowUI-Qwen2VL-2B_UIPro4336k_ShowUICfg_15E",
                 "--output_path", "./logs/",
                 //"--limit", "0.005"
                 // "--verbosity", "DEBUG"

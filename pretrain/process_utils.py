@@ -81,7 +81,7 @@ BRACKET_COORD_PATTERN = re.compile(r'\[(.*?)\]')
 GENERAL_COORD_PATTERN = re.compile(r'-?\d+\.?\d*')
 
 
-def pred_2_point(pred, keep_box=True, scale=1000):
+def pred_2_point(pred, keep_box=True, scale=1000, w=None, h=None):
     click_point = None
     
     if 'action' in pred: # Handle the case: 'Press on the element that provides access to a specific entry or submission in a contest or competition\n{"action_type": "click", "target": (384,171)}'

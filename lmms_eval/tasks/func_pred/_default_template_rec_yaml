@@ -112,6 +112,10 @@ model_specific_prompt_kwargs:
     format: showui
     post_prompt: |
       {goal_info}
+  showui_autogui:
+    format: showui_autogui
+    post_prompt: |
+      Locate the element according to its detailed functionality description. {goal_info} (Output the center coordinates of the target)
   uitars:
     format: uitars
     post_prompt: |
@@ -174,4 +178,6 @@ model_specific_process_kwargs:
   uitars:
     scale: 1000
   aguvis:
+    scale: 1000
+  showui_autogui:
     scale: 1000
