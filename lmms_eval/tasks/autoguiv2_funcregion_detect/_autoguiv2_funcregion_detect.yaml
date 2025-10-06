@@ -1,0 +1,3 @@
+group: func_pred
+task:
+- func_pred_rec_test
