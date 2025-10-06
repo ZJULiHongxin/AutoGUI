@@ -42,6 +42,7 @@ from itertools import islice
 import pytz
 import logging
 
+IMAGE_SIZE_TAG = "image_size"
 
 class PathFormatter(logging.Formatter):
     def __init__(self, fmt=None, datefmt=None, timezone="UTC"):
