@@ -36,20 +36,24 @@
   },
   "diff": {
     "lines": [
-      "  [1] main \"Search results\"",
-      "  [5] searchbox \"Search products\"",
-      "  [9] button \"Filters\"",
-      "+ [20] region \"Filter panel\"",
-      "+ [21] checkbox \"On sale\"",
-      "+ [22] checkbox \"In stock\"",
-      "  [12] list \"Results\""
+      "Unchanged [1] main \"Search results\"",
+      "Unchanged [5] searchbox \"Search products\"",
+      "Unchanged [9] button \"Filters\"",
+      "Added [20] region \"Filter panel\"",
+      "Added [21] checkbox \"On sale\"",
+      "Added [22] checkbox \"In stock\"",
+      "Unchanged [12] list \"Results\""
     ],
     "num_added": 3,
     "num_deleted": 0,
     "explainer": "The before and after trees are compared line by line to find what the interaction actually changed. Added lines are elements that appeared, deleted lines are elements that went away, and the counts summarize how big the change was. If nothing changed, the interaction told us nothing about the element and the sample stops here."
   },
   "reject": {
-    "scores": [4, 5, 4],
+    "scores": [
+      4,
+      5,
+      4
+    ],
     "max_score": 5,
     "kept": true,
     "reasoning": "The click revealed a dedicated filter panel with concrete filter controls, a clear and informative change that directly reflects the button's purpose.",
@@ -62,7 +66,12 @@
     "explainer": "A language model reads the change and writes a short, high-level description of what the interacted element does — for example, 'opens the options menu'. It works either from the line-by-line diff (manipulation mode) or from a description of the whole page when the interaction navigated somewhere new (describe mode)."
   },
   "verify": {
-    "scores": [0, 0, 0, 3],
+    "scores": [
+      0,
+      0,
+      0,
+      3
+    ],
     "final_score": 3.0,
     "max_score": 3,
     "consistent": true,

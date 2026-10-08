@@ -111,10 +111,18 @@
 
     var pre = el("div", "diff");
     (diff.lines || []).forEach(function (line) {
+      // The builder feeds format_diff()'s output verbatim: lines are word-prefixed
+      // ("Added ...", "Deleted ...", "Unchanged ...", "Repositioned ...",
+      // "Before/After Attribute Update ..."), NOT +/- unified-diff markers. Classify
+      // by that prefix; still accept a leading +/- as a fallback.
       var kind = "unchanged";
-      var marker = line.charAt(0);
-      if (marker === "+") kind = "added";
-      else if (marker === "-") kind = "deleted";
+      if (/^(Added|Repositioned Here|After Attribute Update)\b/.test(line)) kind = "added";
+      else if (/^(Deleted|Repositioned (Up|Down)ward|Before Attribute Update)\b/.test(line)) kind = "deleted";
+      else {
+        var marker = line.charAt(0);
+        if (marker === "+") kind = "added";
+        else if (marker === "-") kind = "deleted";
+      }
       pre.appendChild(el("div", "diff-line diff-" + kind, line));
     });
     body.appendChild(pre);

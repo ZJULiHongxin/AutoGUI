@@ -43,7 +43,11 @@ STAGE_EXPLAINERS: dict[str, str] = {
         "A language model scores whether the observed change is informative enough "
         "to describe the element's purpose. Trivial or noisy changes score low and "
         "the sample is rejected; a clear, meaningful change is kept and moves on to "
-        "annotation. This filter keeps low-quality samples out of the dataset."
+        "annotation. This filter keeps low-quality samples out of the dataset. "
+        "(The kept/rejected call shown here is the visualizer's own illustrative "
+        "threshold — mean score over half of max — so a reader can see how the "
+        "score drives the decision; the bulk annotators keep every scored sample "
+        "and record the score instead of gating on it.)"
     ),
     "annotate": (
         "A language model reads the change and writes a short, high-level "
