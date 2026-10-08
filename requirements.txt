@@ -44,3 +44,5 @@ transformers==4.49.0
 transformers_stream_generator==0.0.5
 uvicorn==0.34.0
 wandb==0.19.8
+opencv-python
+spacy
