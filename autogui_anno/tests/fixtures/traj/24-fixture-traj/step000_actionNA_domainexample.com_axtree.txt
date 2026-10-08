@@ -1,0 +1,29 @@
+[
+  {
+    "nodeId": "1",
+    "role": {"value": "RootWebArea"},
+    "name": {"value": "Example Site", "sources": []},
+    "backendDOMNodeId": 101,
+    "union_bound": [0, 0, 400, 600],
+    "childIds": ["2", "3"],
+    "parentId": null
+  },
+  {
+    "nodeId": "2",
+    "role": {"value": "link"},
+    "name": {"value": "Submit", "sources": []},
+    "backendDOMNodeId": 102,
+    "union_bound": [0, 0, 100, 20],
+    "childIds": [],
+    "parentId": "1"
+  },
+  {
+    "nodeId": "3",
+    "role": {"value": "link"},
+    "name": {"value": "Home", "sources": []},
+    "backendDOMNodeId": 103,
+    "union_bound": [0, 30, 100, 20],
+    "childIds": [],
+    "parentId": "1"
+  }
+]
