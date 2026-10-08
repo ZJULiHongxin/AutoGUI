@@ -37,9 +37,9 @@ def is_navigation_change(
     return (
         num_deleted_lines / len_before >= config.desc_prediction_threshold
         and num_added_lines / len_after >= config.desc_prediction_threshold
-        or num_deleted_lines > config.diff_limit
-        or num_added_lines > config.diff_limit
-        or llm.num_tokens(variation) > config.diff_token_limit
+        or num_deleted_lines > config.nav_diff_line_limit
+        or num_added_lines > config.nav_diff_line_limit
+        or llm.num_tokens(variation) > config.nav_token_threshold
         or first_line_before != first_line_after
     )
 

@@ -16,6 +16,8 @@ class PipelineConfig:
     text_max_len: int = 122
     reject_repeat: int = 3
     reject_temp: float = 1.0
+    nav_token_threshold: int = 5500  # source reject.py:77 nav-trigger token literal
+    nav_diff_line_limit: int = 150  # source reject.py:22 local DIFF_LIMIT nav-trigger rebind
     cycle_check_repeat: int = 3
     cycle_check_line_limit: int = 20
     remove_hidden: bool = True
