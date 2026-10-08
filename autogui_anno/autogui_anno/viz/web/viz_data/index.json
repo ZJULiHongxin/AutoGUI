@@ -1,0 +1,9 @@
+[
+  {
+    "dataset": "Mind2Web_v1",
+    "sample_id": 42,
+    "label": "#42 button",
+    "verdict": "kept",
+    "file": "example_record.json"
+  }
+]
