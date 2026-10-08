@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autogui-anno"
+version = "0.1.0"
+description = "AutoGUI UI-element functionality annotation pipeline (ACL 2025)"
+requires-python = ">=3.9"
+dependencies = [
+    "openai>=1.0",
+    "tiktoken",
+    "pyyaml",
+    "numpy",
+    "pillow",
+    "opencv-python",
+    "datasets",
+    "tqdm",
+]
+
+[project.optional-dependencies]
+web = ["playwright"]
+analysis = ["matplotlib"]
+dev = ["pytest"]
+
+[project.scripts]
+autogui-annotate-web = "autogui_anno.cli:main_web"
+autogui-annotate-mobile = "autogui_anno.cli:main_mobile"
+autogui-generate-tasks = "autogui_anno.cli:main_generate_tasks"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["autogui_anno*"]
