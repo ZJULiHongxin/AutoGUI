@@ -307,9 +307,19 @@ def run_builder(
     sample_dirs = sorted(glob.glob(os.path.join(data_dir, "Mind2Web_*")))
     sample_dirs = [d for d in sample_dirs if os.path.isdir(d)]
 
+    # Normalize the dataset filter to a set of allowed names: callers may pass a
+    # single dataset name (str) or a collection of names (the CLI's --datasets
+    # yields a list). ``None`` means no filtering.
+    if dataset_filter is None:
+        allowed_datasets = None
+    elif isinstance(dataset_filter, str):
+        allowed_datasets = {dataset_filter}
+    else:
+        allowed_datasets = set(dataset_filter)
+
     for sample_dir in sample_dirs:
         dataset = os.path.basename(sample_dir)
-        if dataset_filter is not None and dataset != dataset_filter:
+        if allowed_datasets is not None and dataset not in allowed_datasets:
             continue
 
         meta_json = sample_dir + ".json"
