@@ -128,6 +128,25 @@ pass `--push-to-hub` with a repo id:
 autogui-generate-tasks ... --push-to-hub your-org/your-dataset
 ```
 
+## Visualizer (didactic demo)
+
+The visualizer runs the pipeline over a handful of samples and renders each
+run as an inspectable per-sample record in a small static web page. It is a
+teaching demo, not the bulk annotator — for production annotation of many
+observations use `autogui-annotate-web`/`autogui-annotate-mobile`, which write
+checkpoints rather than viewer records.
+
+```
+# 1. Build records (needs AUTOGUI_LLM_API_KEY + a models.yaml)
+autogui-visualize-build --config configs/pipeline.yaml --models configs/models.yaml \
+    --data /path/to/test_samples --out autogui_anno/autogui_anno/viz/web/viz_data
+# 2. View (no key needed; works offline)
+autogui-visualize-serve           # serves the packaged page at http://localhost:8000
+```
+
+Building needs your LLM key (`AUTOGUI_LLM_API_KEY`) and a `models.yaml`;
+viewing needs neither — the page is fully static and works offline.
+
 ## Running the tests
 
 The full suite is offline — every test uses fakes and fixtures, so no network

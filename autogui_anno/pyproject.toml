@@ -28,6 +28,8 @@ dev = ["pytest"]
 autogui-annotate-web = "autogui_anno.cli:main_web"
 autogui-annotate-mobile = "autogui_anno.cli:main_mobile"
 autogui-generate-tasks = "autogui_anno.cli:main_generate_tasks"
+autogui-visualize-build = "autogui_anno.cli:main_visualize_build"
+autogui-visualize-serve = "autogui_anno.cli:main_visualize_serve"
 
 [tool.setuptools.packages.find]
 where = ["."]
