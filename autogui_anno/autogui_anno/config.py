@@ -24,6 +24,7 @@ class PipelineConfig:
     with_markers: bool = True
     reject_max_score: int = 1
     verify_max_score: int = 3
+    skip_statusbar: bool = True  # mobile process_xml arg (annotate_func_android.py SKIP_STATUSBAR)
 
     @classmethod
     def from_yaml(cls, path: str) -> "PipelineConfig":

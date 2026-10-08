@@ -41,18 +41,22 @@ import difflib
 import glob
 import json
 import os
+import re
 import time
 import traceback
 from datetime import datetime
 
+import cv2
 import numpy as np
 
+from .axtree.android import process_xml
 from .axtree.diff import format_diff
 from .axtree.prune import prune_static_text
 from .axtree.web import process_axtree
 from .config import PipelineConfig
 from .llm.client import LLMClient
 from .stages.annotate import predict_functionality
+from .stages.mobile_gates import is_element_too_large, is_pure_color, is_tap_action
 from .stages.reject import reject_sample
 from .stages.verify import verify_consistency_multi
 
@@ -492,6 +496,420 @@ def run_web(
             "diff_context": config.diff_context,
             "markers": markers_list,
             "error_info_list": error_info_list,
+            "rejection_scores": scores_record,
+            "prompt_tokens": llm.prompt_tokens - last_token_usage[0],
+            "completion_tokens": llm.completion_tokens - last_token_usage[1],
+            "query_count": llm.query_count - last_query_cnt,
+        }
+
+        last_token_usage[0], last_token_usage[1], last_query_cnt = (
+            llm.prompt_tokens, llm.completion_tokens, llm.query_count
+        )
+        all_rejection_scores[traj_name] = scores_record
+        all_cycle_checking_results[traj_name] = cycle_checking_results
+
+        stats_list[traj_name] = stats
+
+        # Save the checking result + stats
+        _save_checkpoint(result_dir, stats, cycle_checking_results)
+
+    # Rank samples by rejection score (the ranking the Task-16 plot consumes)
+    samples_to_sort = _rank_rejection_samples(all_rejection_scores) if do_rejecting else []
+
+    basic_stats = aggregate_stats(
+        stats_list,
+        consis_dict,
+        do_rejecting=do_rejecting,
+        do_cycle_checking=do_cycle_checking,
+        start_time=start,
+    )
+
+    overall_stats = {
+        "basic_stats": basic_stats,
+        "cycle_consis_info": consis_dict,
+        "rejection_order": samples_to_sort,
+    }
+
+    with open(os.path.join(out_dir, "overall_stats.json"), "w") as f:
+        json.dump(overall_stats, f, indent=2)
+
+    print("All {} steps have been processed. Time: {}".format(solved, datetime.now()))
+
+    return overall_stats
+
+
+def run_mobile(
+    config: PipelineConfig,
+    llm: LLMClient,
+    verifiers: list,
+    *,
+    data_dir: str,
+    out_dir: str,
+    resume: bool = False,
+    do_rejecting: bool = True,
+    do_cycle_checking: bool = True,
+) -> dict:
+    """Annotate the functionality of mobile (Android) elements across trajectories.
+
+    Ported from ``annotate_func`` (annotate_func_android.py:62-444). Scans
+    ``<data_dir>/images/*/*`` for trajectory directories, processes each step pair
+    through the three pure invalidity gates -> reject -> annotate -> verify, and
+    records the mobile ``uncheckable`` reasons.
+
+    Element location differs from ``run_web``: mobile has no tabbability markers, so
+    the interacted element is found by TARGET-BOX MATCHING — scanning
+    ``boxes_before`` (and ``boxes_after``) for the entry equal to ``target_box``.
+
+    Mobile uncheckable reasons emitted (source strings / order): ``"blank page"``,
+    ``"not tapping action"``, ``"Incontinuous steps"``, ``"Page not changed"``,
+    ``"Element too large"``, ``"Element not displayed"``, ``"Element not in tree"``.
+
+    Shares ``aggregate_stats`` / ``_load_checkpoint`` / ``_save_checkpoint`` with
+    ``run_web``. Returns the overall stats dict ``{'basic_stats', 'cycle_consis_info',
+    'rejection_order'}``.
+
+    Spec deviations / mappings applied here:
+    - Module globals become parameters / config fields: ``RAW_DATA_DIR`` -> ``data_dir``,
+      ``FUNC_PRED_DIR`` -> ``out_dir``, ``DO_REJECTING`` / ``DO_CYCLE_CHECKING`` ->
+      ``do_rejecting`` / ``do_cycle_checking``, ``RESUME`` -> ``resume``,
+      ``DIFF_CONTEXT`` / ``DIFF_LIMIT`` / ``REJECT_TEMP`` / ``REJECT_REPEAT`` -> ``config.*``.
+    - ``AREA`` (module global left at 0, i.e. element-too-large gate disabled) is replaced
+      by the real screen dimensions read from the screenshot, so the gate actually works.
+    - Token/query counters ``llm.token_num[0/1]`` / ``llm.query_cnt`` ->
+      ``llm.prompt_tokens`` / ``llm.completion_tokens`` / ``llm.query_count``.
+    - ``model_info_list`` / matplotlib plotting / the ``__main__`` client-construction
+      block are NOT ported (security + a later task).
+    """
+    image_root = os.path.join(data_dir, "images")
+    os.makedirs(out_dir, exist_ok=True)
+
+    # Aggregate all trajectory directories: ``<data_dir>/images/<part>/<traj>``.
+    trajs = []
+    for part in sorted(glob.glob(os.path.join(image_root, "*"))):
+        for traj_dir in sorted(glob.glob(os.path.join(part, "*"))):
+            trajs.append(traj_dir)
+
+    stats_list = {}
+    consis_dict = {"details": {}, "summary": {}}
+    all_rejection_scores = {}
+    all_cycle_checking_results = {}
+
+    solved, last_token_usage, last_query_cnt = 0, [0, 0], 0
+    start = time.time()
+
+    for traj_idx, traj_dir in enumerate(trajs):
+        # All raw trajectories live under a folder named 'images'.
+        traj_name = traj_dir.split("images/")[-1]
+        result_dir = os.path.join(out_dir, traj_name)
+
+        # Load checkpoints
+        if resume:
+            ckpt = _load_checkpoint(result_dir)
+            if ckpt is not None:
+                stats = ckpt["stats"]
+                cycle_checking_results = ckpt["cycle_checking_results"]
+
+                stats_list[traj_name] = stats
+                all_rejection_scores[traj_name] = stats["rejection_scores"]
+                all_cycle_checking_results[traj_name] = cycle_checking_results
+                consis_dict["details"][traj_name] = {
+                    "consis": cycle_checking_results["result"]["consistent"],
+                    "inconsis": cycle_checking_results["result"]["inconsistent"],
+                }
+
+                print("Skip trajectory:", traj_name)
+                continue
+
+        os.makedirs(result_dir, exist_ok=True)
+
+        # Load xml files (``*.xml``, falling back to ``*_xml.txt``).
+        raw_xml_files = sorted(
+            glob.glob(os.path.join(traj_dir, "*.xml")),
+            key=lambda x: int(os.path.basename(x).split("_")[-1].split(".")[0]),
+        )
+        if len(raw_xml_files) == 0:
+            raw_xml_files = sorted(
+                glob.glob(os.path.join(traj_dir, "*_xml.txt")),
+                key=lambda x: int(os.path.basename(x).split("_")[0]),
+            )
+        num_states = len(raw_xml_files)
+
+        # Load the action sequence.
+        traj_meta_file = os.path.join(traj_dir, "meta.json")
+        if not os.path.exists(traj_meta_file):
+            continue
+        with open(traj_meta_file, "r") as f:
+            traj_meta = json.load(f)
+        act_seq = traj_meta["traj"] if "traj" in traj_meta else traj_meta
+        act_seq = [x for x in act_seq if x]
+        for x in act_seq:
+            if "action_type" not in x:
+                x["action_type"] = None
+
+        # The last action is useless and dropped; a target box is parsed from the
+        # per-step ``typed_text`` ("TAP:... Box:[x1,y1,x2,y2]"), or None otherwise.
+        target_boxes = [
+            list(map(int, x["typed_text"].split("Box:")[-1][1:-1].split(",")))
+            if "typed_text" in x and isinstance(x["typed_text"], str) and "Box:" in x["typed_text"]
+            else None
+            for x in act_seq[:len(act_seq) - 1]
+        ]
+
+        if len(target_boxes) < len(raw_xml_files) - 1:
+            continue
+
+        cycle_checking_results = {
+            "traj_name": traj_name,
+            "checking_models": [getattr(v, "model_name", None) for v in verifiers],
+            "result": {"consistent": [], "inconsistent": [], "uncheckable": []},
+        }
+
+        scores_record = {}
+
+        # Store annotating status
+        checkable, valid_tasks = [], []
+        no_change_list, blank_page_list, not_tapping_list = [], [], []
+        step_gap_list, elem_not_in_tree_list = [], []
+        element_too_large_list, element_not_displayed_list = [], []
+        error_info_list, invalid_xml_files = [], []
+
+        axtree_lines_list, steps, blank_ids = [], [], []
+
+        # Start processing axtrees
+        for i, raw_xml_file in enumerate(raw_xml_files):
+            step_id = int(re.search(r"(\d+)", os.path.basename(raw_xml_file)).group(1))
+            steps.append(step_id)
+
+            target_box = target_boxes[i] if i < len(raw_xml_files) - 1 else None
+            try:
+                axtree_lines, all_boxes = process_xml(
+                    os.path.abspath(raw_xml_file),
+                    target_box=target_box,
+                    resume=resume,
+                    skip_statusbar=config.skip_statusbar,
+                    skip_lang=True,
+                )
+            except Exception:
+                invalid_xml_files.append(raw_xml_file)
+                axtree_lines, all_boxes = [], []
+
+            axtree_lines_list.append([axtree_lines, all_boxes])
+
+            if len(all_boxes) == 0:
+                blank_ids.append(step_id)
+
+        # Start predicting functionalities
+        for i, step_id in enumerate(steps[:-1]):
+            solved += 1
+
+            axtree_before, boxes_before = axtree_lines_list[i][0], axtree_lines_list[i][1]
+            axtree_after, boxes_after = axtree_lines_list[i + 1][0], axtree_lines_list[i + 1][1]
+
+            # The interacted element is located by target-box matching (no markers).
+            target_box = target_boxes[i]
+
+            # Load the screenshot (used by the pure-color / too-large gates).
+            screenshot = cv2.imread(os.path.join(traj_dir, f"{step_id}.png"))
+            screen_h, screen_w = (screenshot.shape[0], screenshot.shape[1]) if screenshot is not None else (0, 0)
+
+            # --- Pure invalidity gates (source order preserved) ---
+            if (
+                steps[i] in blank_ids
+                or steps[i + 1] in blank_ids
+                or len(boxes_before) == 0
+                or len(boxes_after) == 0
+            ):
+                blank_page_list.append(step_id)
+                cycle_checking_results["result"]["uncheckable"].append([step_id, "blank page"])
+                continue
+
+            if not is_tap_action(act_seq[step_id - 1]["action_type"]) or target_box is None:
+                not_tapping_list.append(step_id)
+                cycle_checking_results["result"]["uncheckable"].append([step_id, "not tapping action"])
+                continue
+
+            if steps[i + 1] - steps[i] != 1:
+                error_info = f"step_id {step_id}: skipped due to the gap between two steps"
+                print(error_info)
+                error_info_list.append(error_info)
+                step_gap_list.append(step_id)
+                cycle_checking_results["result"]["uncheckable"].append([step_id, "Incontinuous steps"])
+                continue
+
+            if axtree_before == axtree_after:
+                no_change_list.append(step_id)
+                cycle_checking_results["result"]["uncheckable"].append([step_id, "Page not changed"])
+                continue
+
+            if is_element_too_large(target_box, screen_w, screen_h):
+                element_too_large_list.append(step_id)
+                cycle_checking_results["result"]["uncheckable"].append([step_id, "Element too large"])
+                continue
+
+            if screenshot is not None and is_pure_color(screenshot, target_box):
+                element_not_displayed_list.append(step_id)
+                cycle_checking_results["result"]["uncheckable"].append([step_id, "Element not displayed"])
+                continue
+
+            # Locate the interacted element line in the AXTree before (box matching).
+            target_idx = 0
+            while target_idx < len(axtree_before):
+                if boxes_before[target_idx] is not None and target_box == boxes_before[target_idx]:
+                    break
+                target_idx += 1
+            else:
+                elem_not_in_tree_list.append(step_id)
+                cycle_checking_results["result"]["uncheckable"].append([step_id, "Element not in tree"])
+                continue
+
+            target_line = axtree_before[target_idx]
+            startoftext = target_line.find("text:")
+            endoftext = target_line.rfind("'")
+            elem_role = target_line[:startoftext].strip()
+            elem_text = target_line[startoftext + 7:endoftext]
+
+            action_str = f'clicking a <{elem_role}> element named "{elem_text}"'
+
+            axtree_before[target_idx] += " (This is the interacted element)"
+
+            # Locate the same element in the AXTree after (box matching).
+            target_idx_after = 0
+            while target_idx_after < len(axtree_after):
+                if boxes_after[target_idx_after] is not None and target_box == boxes_after[target_idx_after]:
+                    break
+                target_idx_after += 1
+            else:
+                target_idx_after = -1
+
+            if target_idx_after != -1:
+                axtree_after[target_idx_after] += " (This is the interacted element)"
+
+            # Generate the unified diff
+            diff = difflib.unified_diff(
+                axtree_before, axtree_after,
+                fromfile="original_webpage", tofile="new_webpage", n=config.diff_context,
+            )
+
+            formated_diff, num_diff_lines, num_added_lines, num_deleted_lines = format_diff(
+                diff,
+                diff_limit=config.diff_limit,
+                diff_token_limit=config.diff_token_limit,
+                use_additional_prefixes=False,
+            )
+
+            diff_info = {
+                "diff": formated_diff,
+                "num_diff_lines": num_diff_lines,
+                "num_added_lines": num_added_lines,
+                "num_deleted_lines": num_deleted_lines,
+            }
+
+            # Reject invalid samples
+            if do_rejecting:
+                scores = reject_sample(
+                    task_id=step_id,
+                    action_str=action_str,
+                    llm=llm,
+                    exp_dir=result_dir,
+                    content_before=axtree_before,
+                    content_after=axtree_after,
+                    diff_info=diff_info,
+                    config=config,
+                    resume=resume,
+                )
+                if scores is None:
+                    no_change_list.append(step_id)
+                    cycle_checking_results["result"]["uncheckable"].append([step_id, "Page not changed"])
+                    continue
+
+                scores_record[step_id] = scores
+
+            # Predict the function
+            predictions, is_valid, no_change, is_nav = predict_functionality(
+                task_id=step_id,
+                content_before=axtree_before,
+                content_after=axtree_after,
+                diff_info=diff_info,
+                action_str=action_str,
+                llm=llm,
+                exp_res_dir=result_dir,
+                config=config,
+                repeat=1,
+                resume=resume,
+                layout="axtree",
+            )
+
+            if predictions is None:
+                no_change_list.append(step_id)
+                cycle_checking_results["result"]["uncheckable"].append([step_id, "Page not changed"])
+                continue
+
+            func_pred_content = predictions[0]
+            valid_tasks.append(step_id)
+
+            # Cycle consistency checking (mobile majority-votes over 3 verifiers).
+            if do_cycle_checking:
+                resps, scores, _, _, is_consistent = verify_consistency_multi(
+                    verifiers=verifiers,
+                    before_content=axtree_before,
+                    func_pred_content=func_pred_content,
+                    elem_text=elem_text,
+                    # Supply the element line id (known via box matching) to improve
+                    # the accuracy of consistency checking.
+                    elem_line_id=target_idx,
+                    result_file=os.path.join(result_dir, f"{step_id}_cycle.txt"),
+                    config=config,
+                    resume=resume,
+                )
+
+                if resps is None:
+                    elem_not_in_tree_list.append(step_id)
+                else:
+                    print(f"step_id {step_id}: cycle consis succeeds")
+
+                    if is_consistent:
+                        cycle_checking_results["result"]["consistent"].append(step_id)
+                    else:
+                        cycle_checking_results["result"]["inconsistent"].append(step_id)
+
+                    checkable.append(step_id)
+
+        num_consistent = len(cycle_checking_results["result"]["consistent"])
+
+        if len(checkable) > 0:
+            cycle_checking_results["result"]["consis_rate"] = (
+                f"{num_consistent}/{len(checkable)}={num_consistent / len(checkable):.3f}"
+            )
+
+        consis_dict["details"][traj_name] = {
+            "consis": cycle_checking_results["result"]["consistent"],
+            "inconsis": cycle_checking_results["result"]["inconsistent"],
+        }
+
+        stats = {
+            "traj_name": traj_name,
+            "num_samples": num_states - 1,
+            # A task is valid if we predict its functionality successfully.
+            "valid_tasks": valid_tasks,
+            # A task is checkable if it can go through the cycle consistency check.
+            "checkable_tasks": checkable,
+            "invalid": {
+                "no_change": no_change_list,
+                "blank_page": blank_page_list,
+                "not_tapping": not_tapping_list,
+                "step_gap": step_gap_list,
+                "elem_not_in_tree": elem_not_in_tree_list,
+                "element_too_large": element_too_large_list,
+                "element_not_displayed": element_not_displayed_list,
+            },
+            # Mobile has no navigation/manipulation split; aggregate_stats consumes
+            # ``nav`` so an empty list keeps the two orchestrators siblings.
+            "nav": [],
+            "desc_page_limit": config.desc_page_limit,
+            "diff_limit": config.diff_limit,
+            "diff_context": config.diff_context,
+            "error_info_list": error_info_list,
+            "invalid_xml_files": invalid_xml_files,
             "rejection_scores": scores_record,
             "prompt_tokens": llm.prompt_tokens - last_token_usage[0],
             "completion_tokens": llm.completion_tokens - last_token_usage[1],
