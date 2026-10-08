@@ -16,6 +16,7 @@ dependencies = [
     "opencv-python",
     "datasets",
     "tqdm",
+    "spacy",
 ]
 
 [project.optional-dependencies]

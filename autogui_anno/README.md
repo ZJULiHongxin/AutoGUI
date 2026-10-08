@@ -12,4 +12,17 @@ the paper:
 4. **verify** — validate candidate annotations for correctness and grounding (Annotation Verification).
 5. **generate-tasks** — compose verified annotations into instruction-following tasks (Task Generation).
 
+## Installation
+
+```bash
+pip install -e .
+```
+
+The **verify** stage's text cleaning (`autogui_anno.prompts.get_clean_func`) uses
+spaCy. After installing, download the English model once:
+
+```bash
+python -m spacy download en_core_web_sm
+```
+
 > This README is a stub; it is expanded in a later task.
