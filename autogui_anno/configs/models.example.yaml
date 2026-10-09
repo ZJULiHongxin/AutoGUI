@@ -1,0 +1,16 @@
+# Example model registry for the AutoGUI annotation pipeline.
+# Set the API key via the environment variable named in api_key_env.
+# Never commit real endpoints or keys; replace the placeholder host below.
+
+default: default-fast
+models:
+  default-fast:
+    provider: openai
+    base_url: https://your-endpoint.example.com/v1
+    api_key_env: AUTOGUI_LLM_API_KEY
+    model: gpt-5-mini
+  default-strong:
+    provider: openai
+    base_url: https://your-endpoint.example.com/v1
+    api_key_env: AUTOGUI_LLM_API_KEY
+    model: gpt-5.1

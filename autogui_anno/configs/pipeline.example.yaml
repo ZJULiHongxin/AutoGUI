@@ -1,0 +1,19 @@
+# Example pipeline configuration for the AutoGUI annotation pipeline.
+# Every field below mirrors PipelineConfig defaults. Copy and edit as needed.
+
+desc_prediction_threshold: 0.8   # min confidence to accept a predicted description
+desc_page_limit: 150             # max pages processed per description run
+diff_limit: 250                  # max diff entries considered per comparison
+diff_token_limit: 3000           # max tokens budgeted for a single diff
+diff_context: 4                  # context lines kept around each diff hunk
+menuitem_limit: 3                # max menu items expanded per element
+tab_limit: 10                    # max tabs explored per page
+text_max_len: 122                # max characters kept from element text
+reject_repeat: 3                 # repeated LLM calls when scoring rejections
+reject_temp: 1.0                 # sampling temperature for rejection scoring
+cycle_check_repeat: 3            # repeated LLM calls for cycle detection
+cycle_check_line_limit: 20       # max lines inspected during cycle checks
+remove_hidden: true              # drop hidden/invisible UI elements
+with_markers: true               # render set-of-mark visual markers
+reject_max_score: 1              # score scale ceiling for rejection judgments
+verify_max_score: 3              # score scale ceiling for verification judgments

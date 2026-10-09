@@ -166,3 +166,10 @@ eval_results/
 /logs
 .vscode
 autogui_ckpt
+autogui_anno/configs/models.yaml
+
+# Visualizer: generated per-sample viewer records are not tracked, but the two
+# committed example files (index.json + example_record.json) are.
+autogui_anno/autogui_anno/viz/web/viz_data/*
+!autogui_anno/autogui_anno/viz/web/viz_data/index.json
+!autogui_anno/autogui_anno/viz/web/viz_data/example_record.json

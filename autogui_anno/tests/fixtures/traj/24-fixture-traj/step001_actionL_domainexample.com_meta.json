@@ -1,0 +1,13 @@
+[
+  {
+    "hint_marker_text": "P",
+    "rect": {"left": 0, "top": 60, "width": 100, "height": 20},
+    "element_html": "<a href=\"/profile\">Profile</a>",
+    "href": "/profile",
+    "axtree_node": {
+      "nodeId": "4",
+      "role": {"value": "link"},
+      "name": {"value": "Profile"}
+    }
+  }
+]
