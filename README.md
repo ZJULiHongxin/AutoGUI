@@ -24,6 +24,17 @@ Here, we are thrilled to unveil **AutoGUI**, a groundbreaking and scalable UI an
 
 This annotation process provides rich functional semantics in the generated annotations, thereby allowing for curating a GUI dataset that can potentially enhance the GUI understanding capabilities of GUI agents.
 
+### Reproducing the annotation pipeline
+
+A clean, self-contained reimplementation of the Web and Mobile annotation
+pipeline (reject → annotate/describe → verify → task generation) lives in the
+[`autogui_anno/`](autogui_anno/README.md) package, along with an offline
+visualizer that walks through the pipeline stage by stage on a handful of
+samples. It talks to any OpenAI-compatible endpoint through a model-registry
+YAML and reads its API key from `AUTOGUI_LLM_API_KEY`. See
+[`autogui_anno/README.md`](autogui_anno/README.md) for installation, configuration,
+and usage.
+
 ## Installation
 You can install the AutoGUI package by cloning the repository and running the following command:
 

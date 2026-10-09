@@ -51,7 +51,7 @@ Each entry names an environment variable (`api_key_env`) that holds the API
 key; the default is `AUTOGUI_LLM_API_KEY`. Export your key before running:
 
 ```bash
-export AUTOGUI_LLM_API_KEY=sk-...
+export AUTOGUI_LLM_API_KEY=your-api-key-here
 ```
 
 A pipeline-tuning file is also provided — copy
